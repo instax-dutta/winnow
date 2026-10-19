@@ -1,0 +1,24 @@
+# Production profile. Nothing is cached, the clock is UTC and only the health and info
+# actuator endpoints are exposed.
+
+spring:
+  thymeleaf:
+    cache: true
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+seo:
+  jpa:
+    show-sql: false

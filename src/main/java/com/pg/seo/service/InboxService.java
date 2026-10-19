@@ -10,6 +10,9 @@ import com.pg.seo.repository.SmtpAccountRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InboxService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(InboxService.class);
+
     private final InboxMessageRepository inbox;
     private final SmtpAccountRepository smtpAccounts;
     private final GmailAccountRepository gmailAccounts;
@@ -33,9 +38,65 @@ public class InboxService {
         this.gmailAccounts = gmailAccounts;
     }
 
+    /**
+     * Stores a batch of captured messages.
+     *
+     * <p>This is the only write path for the inbox, so the scheduler never touches the
+     * repository directly. The insert is idempotent: the unique key on the account id and
+     * the provider message id means a repeated poll does not duplicate a message, and a
+     * duplicate in the same batch is dropped rather than failing the whole batch.
+     *
+     * @param ownerUserId the tenant that owns the account the messages came from
+     * @param accountId   the account the messages were read from
+     * @param messages    the messages to store
+     * @return how many messages were newly stored
+     */
+    @Transactional
+    public int store(Long ownerUserId, Long accountId, List<InboxMessage> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return 0;
+        }
+        requireOwnedAccountFor(ownerUserId, accountId);
+        List<InboxMessage> fresh = new ArrayList<>(messages.size());
+        for (InboxMessage message : messages) {
+            if (message.getProviderMessageId() == null) {
+                continue;
+            }
+            if (inbox.existsByAccountIdAndProviderMessageId(accountId, message.getProviderMessageId())) {
+                continue;
+            }
+            message.setAccountId(accountId);
+            message.setCreatedAt(Instant.now());
+            fresh.add(message);
+        }
+        if (fresh.isEmpty()) {
+            return 0;
+        }
+        try {
+            inbox.saveAll(fresh);
+        } catch (DataIntegrityViolationException e) {
+            // Another poll stored the same message first. The unique key did its job.
+            LOG.debug("A captured message was already stored");
+        }
+        return fresh.size();
+    }
+
+    /**
+     * Confirms that the account belongs to the tenant.
+     *
+     * @throws NotFoundException when the account does not exist or belongs to another tenant
+     */
+    private void requireOwnedAccountFor(Long ownerUserId, Long accountId) {
+        boolean owned = smtpAccounts.findByIdAndOwnerUserIdAndDeletedAtIsNull(accountId, ownerUserId).isPresent()
+                || gmailAccounts.findByIdAndOwnerUserIdAndDeletedAtIsNull(accountId, ownerUserId).isPresent();
+        if (!owned) {
+            throw NotFoundException.of("Account", accountId);
+        }
+    }
+
     @Transactional(readOnly = true)
     public PagedResponse<InboxMessageDto> list(Long ownerUserId, Long accountId, Instant from, Instant to) {
-        requireOwnedAccount(ownerUserId, accountId);
+        requireOwnedAccountFor(ownerUserId, accountId);
         List<InboxMessage> all = inbox.findByAccountIdAndReceivedAtBetweenOrderByReceivedAtDesc(accountId, from, to);
         return PagedResponse.of(
                 all.stream().map(InboxService::toDto).toList(), all.size(), all.size(), 1, 0, all.size());
@@ -85,14 +146,6 @@ public class InboxService {
         gmailAccounts.findByOwnerUserIdAndDeletedAtIsNullOrderByEmailAsc(ownerUserId)
                 .forEach(account -> ids.add(account.getId()));
         return ids;
-    }
-
-    private void requireOwnedAccount(Long ownerUserId, Long accountId) {
-        boolean owned = smtpAccounts.findByIdAndOwnerUserIdAndDeletedAtIsNull(accountId, ownerUserId).isPresent()
-                || gmailAccounts.findByIdAndOwnerUserIdAndDeletedAtIsNull(accountId, ownerUserId).isPresent();
-        if (!owned) {
-            throw NotFoundException.of("Account", accountId);
-        }
     }
 
     private static InboxMessageDto toDto(InboxMessage message) {

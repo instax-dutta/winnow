@@ -1,0 +1,13 @@
+# Development profile. The schema is owned by Flyway, Hibernate only validates it, and the
+# templates are not cached so a change is visible on the next reload.
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  thymeleaf:
+    cache: false
+
+seo:
+  jpa:
+    show-sql: false

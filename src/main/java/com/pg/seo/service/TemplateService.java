@@ -32,6 +32,19 @@ public class TemplateService {
         this.users = users;
     }
 
+    /**
+     * One template of the tenant.
+     *
+     * @param ownerUserId the tenant
+     * @param id          the template
+     * @return the template
+     * @throws NotFoundException when the template does not exist or belongs to another tenant
+     */
+    @Transactional(readOnly = true)
+    public EmailTemplateDto get(Long ownerUserId, Long id) {
+        return toDto(require(ownerUserId, id));
+    }
+
     @Transactional(readOnly = true)
     public List<EmailTemplateDto> list(Long ownerUserId) {
         return templates.findByOwnerUserIdAndDeletedAtIsNullOrderByUpdatedAtDesc(ownerUserId).stream()

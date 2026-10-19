@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <title>Pagination</title>
+</head>
+<body>
+<!--/*
+  Client side pager for the list screens.
+
+  Parameter
+    pagerId - the id given to the pager element, used by the screen module to
+              find it again.
+
+  The screen module drives the pager through createPager() in ui.js: it holds
+  the page and page size and asks the screen for the visible slice.
+*/-->
+<div th:fragment="pager(pagerId)" class="pager" th:id="${pagerId}">
+  <p class="pager-info" data-role="info">No rows</p>
+  <div class="pager-controls">
+    <label class="pager-size">
+      <span>Rows</span>
+      <select class="select select-sm" data-role="size">
+        <option value="10">10</option>
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </label>
+    <button type="button" class="btn btn-secondary btn-sm" data-role="first">First</button>
+    <button type="button" class="btn btn-secondary btn-sm" data-role="prev">Previous</button>
+    <span class="pager-page" data-role="page">Page 1 of 1</span>
+    <button type="button" class="btn btn-secondary btn-sm" data-role="next">Next</button>
+    <button type="button" class="btn btn-secondary btn-sm" data-role="last">Last</button>
+  </div>
+</div>
+</body>
+</html>

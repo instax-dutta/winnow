@@ -1,0 +1,43 @@
+# Test profile. H2 runs in MySQL compatibility mode and Flyway applies the same
+# migrations the production database gets, so a migration that only works on MySQL fails
+# the build here. The schema is created by Flyway alone, never by Hibernate.
+
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:seo_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+    hikari:
+      maximum-pool-size: 4
+      connection-timeout: 20000
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  thymeleaf:
+    cache: false
+
+seo:
+  secret-store:
+    path: ${java.io.tmpdir}/seo-test-secret-store
+  bootstrap:
+    username: admin
+    password: test-value
+  jpa:
+    show-sql: false
+  security:
+    max-failed-logins: 5
+    lock-duration: 15m

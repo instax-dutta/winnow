@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Gmail accounts - Cold Mail'">Gmail accounts</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'gmail-accounts', 'Gmail accounts')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Gmail accounts</h1>
+          <p class="page-sub">Google OAuth mailboxes. The client secret and the refresh token are write only: they are stored in the secret store and never returned to the browser.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" type="button" data-action="create">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+            <span>Add account</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="gmail-search">Search accounts</label>
+            <input class="input input-sm" type="search" id="gmail-search" data-role="search"
+                   placeholder="Search by address or client id" autocomplete="off">
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Gmail accounts</caption>
+            <thead>
+              <tr>
+                <th scope="col">Address</th>
+                <th scope="col">OAuth client id</th>
+                <th scope="col">Scopes</th>
+                <th scope="col">Credential</th>
+                <th scope="col">State</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-at"></use></svg>
+            <p class="empty-title">No Gmail accounts yet</p>
+            <p class="empty-text">Add a Google OAuth mailbox to send from Gmail.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" type="button" data-action="create">Add an account</button>
+            </div>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('gmail-pager')}"></div>
+      </section>
+
+      <dialog class="modal" id="gmail-dialog" data-role="dialog" aria-labelledby="gmail-dialog-title">
+        <form data-role="form" novalidate>
+          <div class="modal-head">
+            <h2 class="modal-title" id="gmail-dialog-title" data-role="title">Add Gmail account</h2>
+            <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger modal-error" data-role="error" role="alert" hidden></div>
+
+            <div class="field">
+              <label class="field-label" for="gmail-email">Address <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="email" id="gmail-email" name="email" maxlength="254" required
+                     autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="gmail-client-id">OAuth client id <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="text" id="gmail-client-id" name="oauthClientId" maxlength="255" required
+                     autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="gmail-scopes">Scopes</label>
+              <input class="input" type="text" id="gmail-scopes" name="scopes" maxlength="512"
+                     placeholder="gmail.send,gmail.readonly" spellcheck="false">
+              <p class="hint">Comma separated. The defaults are used when this is empty.</p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="gmail-client-secret">Client secret</label>
+              <input class="input" type="password" id="gmail-client-secret" name="clientSecret" maxlength="512"
+                     autocomplete="new-password">
+              <p class="hint" data-role="secret-hint">Leave empty to keep the stored secret unchanged.</p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="gmail-refresh-token">Refresh token</label>
+              <input class="input" type="password" id="gmail-refresh-token" name="refreshToken" maxlength="2048"
+                     autocomplete="new-password">
+              <p class="hint" data-role="secret-hint">Leave empty to keep the stored token unchanged.</p>
+            </div>
+
+            <div class="field">
+              <label class="checkbox">
+                <input type="checkbox" id="gmail-enabled" name="enabled" checked>
+                <span>Enabled for sending</span>
+              </label>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" type="button" data-action="close">Cancel</button>
+            <button class="btn btn-primary" type="submit" data-role="submit">Save account</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/gmail-accounts.js}"></script>
+</body>
+</html>

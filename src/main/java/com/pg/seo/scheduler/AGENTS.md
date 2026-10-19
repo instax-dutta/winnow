@@ -29,6 +29,24 @@ service. The scheduler package owns when work happens, never what the work does.
   give it a test that runs the job body twice and asserts the work happened once.
 - Prefer a periodic trigger with a claim step over a long-running trigger.
 
+## Public API
+
+| Job | Method | Schedule key |
+|---|---|---|
+| `OutboxDispatchJob` | `dispatchDue()` | `seo.scheduler.outbox-delay-ms`, `seo.scheduler.outbox-batch-size` |
+| `InboxPollJob` | `poll()` | `seo.scheduler.inbox-delay-ms` |
+| `ExtractionJob` | `advance()` | `seo.scheduler.extraction-delay-ms`, `seo.scheduler.extraction-run-timeout-minutes` |
+
+- `OutboxDispatchJob` claims the rows with `OutboxService.claimDue`, resolves the sending
+  account of the row inside the tenant of the row and sends it with the nine argument
+  `SendRequest`. On success the row is marked sent, on failure it is marked failed.
+- `InboxPollJob` reads the mailbox of every enabled SMTP account over IMAP with an explicit
+  connect, read and write timeout. A message is identified by the id the provider gave it,
+  so a repeated poll stores it once.
+- `ExtractionJob` closes every run that was left behind. A queued run is closed as failed, a
+  running run that passed the run timeout is resumed through `ExtractionWorker`. A run is
+  never left in `RUNNING`.
+
 ## Verification
 
 - `./mvnw test` - the scheduler tests assert idempotency and that a failing job does not

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Dashboard - Cold Mail'">Dashboard</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'dashboard', 'Dashboard')}">
+    <main th:fragment="main" class="page" th:with="d=${dashboard}">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub">Everything this account owns, at a glance. Every count is scoped to your own data.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" type="button" id="refresh-dashboard">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-refresh"></use></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="stat-grid" aria-label="Account counters">
+        <a class="stat" th:href="@{/clients}">
+          <span class="stat-label">Clients</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.clients : 0}">0</span>
+          <span class="stat-note">People you can contact</span>
+        </a>
+        <a class="stat" th:href="@{/groups}">
+          <span class="stat-label">Client groups</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.clientGroups : 0}">0</span>
+          <span class="stat-note">Segments for campaigns</span>
+        </a>
+        <a class="stat" th:href="@{/templates}">
+          <span class="stat-label">Templates</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.templates : 0}">0</span>
+          <span class="stat-note">Email templates</span>
+        </a>
+        <a class="stat" th:href="@{/templates/approvals}">
+          <span class="stat-label">Pending approvals</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.pendingTemplates : 0}">0</span>
+          <span class="stat-note">Waiting for review</span>
+        </a>
+        <a class="stat" th:href="@{/accounts/smtp}">
+          <span class="stat-label">SMTP accounts</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.smtpAccounts : 0}">0</span>
+          <span class="stat-note">Sending mailboxes</span>
+        </a>
+        <a class="stat" th:href="@{/accounts/gmail}">
+          <span class="stat-label">Gmail accounts</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.gmailAccounts : 0}">0</span>
+          <span class="stat-note">OAuth mailboxes</span>
+        </a>
+        <a class="stat" th:href="@{/campaigns}">
+          <span class="stat-label">Campaigns</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.campaigns : 0}">0</span>
+          <span class="stat-note">Sends started</span>
+        </a>
+        <a class="stat" th:href="@{/campaigns}">
+          <span class="stat-label">Emails sent</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.emailsSent : 0}">0</span>
+          <span class="stat-note">Accepted by the provider</span>
+        </a>
+        <a class="stat" th:href="@{/campaigns}">
+          <span class="stat-label">Emails failed</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.emailsFailed : 0}">0</span>
+          <span class="stat-note">Rejected or bounced</span>
+        </a>
+        <a class="stat" th:href="@{/extraction}">
+          <span class="stat-label">Extraction runs</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.extractionRuns : 0}">0</span>
+          <span class="stat-note">Domain to address runs</span>
+        </a>
+        <a class="stat" th:href="@{/inbox}">
+          <span class="stat-label">Inbox messages</span>
+          <span class="stat-value" data-counter th:text="${d != null ? d.inboxMessages : 0}">0</span>
+          <span class="stat-note">Inbound replies</span>
+        </a>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Go to</h2>
+        </div>
+        <div class="panel-body">
+          <div class="link-grid">
+            <a class="link-card" th:href="@{/clients}">
+              <span class="link-card-title">Clients</span>
+              <span class="link-card-text">Add, edit and group the people you contact.</span>
+            </a>
+            <a class="link-card" th:href="@{/groups}">
+              <span class="link-card-title">Client groups</span>
+              <span class="link-card-text">Segments a campaign can target.</span>
+            </a>
+            <a class="link-card" th:href="@{/templates}">
+              <span class="link-card-title">Email templates</span>
+              <span class="link-card-text">Write the subject and body you send.</span>
+            </a>
+            <a class="link-card" th:href="@{/templates/approvals}">
+              <span class="link-card-title">Approvals</span>
+              <span class="link-card-text">Review templates waiting for sign off.</span>
+            </a>
+            <a class="link-card" th:href="@{/accounts/smtp}">
+              <span class="link-card-title">SMTP accounts</span>
+              <span class="link-card-text">Mailboxes used to send.</span>
+            </a>
+            <a class="link-card" th:href="@{/accounts/gmail}">
+              <span class="link-card-title">Gmail accounts</span>
+              <span class="link-card-text">Google OAuth mailboxes.</span>
+            </a>
+            <a class="link-card" th:href="@{/campaigns}">
+              <span class="link-card-title">Campaigns</span>
+              <span class="link-card-text">Start a send and watch it progress.</span>
+            </a>
+            <a class="link-card" th:href="@{/outbox}">
+              <span class="link-card-title">Outbox</span>
+              <span class="link-card-text">Scheduled messages and their status.</span>
+            </a>
+            <a class="link-card" th:href="@{/extraction}">
+              <span class="link-card-title">Extraction</span>
+              <span class="link-card-text">Turn a list of domains into addresses.</span>
+            </a>
+            <a class="link-card" th:href="@{/inbox}">
+              <span class="link-card-title">Inbox</span>
+              <span class="link-card-text">Replies that came back.</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <p class="faint" id="dashboard-updated" hidden></p>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/dashboard.js}"></script>
+</body>
+</html>

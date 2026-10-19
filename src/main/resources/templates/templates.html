@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Email templates - Cold Mail'">Email templates</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'templates', 'Email templates')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Email templates</h1>
+          <p class="page-sub">The subject and body a campaign sends. A template has to be approved before it can be used.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" type="button" data-action="create">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+            <span>New template</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="template-search">Search templates</label>
+            <input class="input input-sm" type="search" id="template-search" data-role="search"
+                   placeholder="Search by name or subject" autocomplete="off">
+          </div>
+          <div class="toolbar-filters">
+            <label class="sr-only" for="template-status">Filter by status</label>
+            <select class="select select-sm" id="template-status" data-role="status-filter">
+              <option value="">All statuses</option>
+              <option value="DRAFT">Draft</option>
+              <option value="PENDING_APPROVAL">Pending approval</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Email templates</caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Status</th>
+                <th scope="col">Version</th>
+                <th scope="col">Updated</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-file"></use></svg>
+            <p class="empty-title">No templates yet</p>
+            <p class="empty-text">Write the first template, submit it for approval, then use it in a campaign.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" type="button" data-action="create">New template</button>
+            </div>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('templates-pager')}"></div>
+      </section>
+
+      <dialog class="modal" id="template-dialog" data-role="dialog" aria-labelledby="template-dialog-title">
+        <form data-role="form" novalidate>
+          <div class="modal-head">
+            <h2 class="modal-title" id="template-dialog-title" data-role="title">New template</h2>
+            <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger modal-error" data-role="error" role="alert" hidden></div>
+
+            <div class="field">
+              <label class="field-label" for="template-name">Name <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="text" id="template-name" name="name" maxlength="255" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="template-subject">Subject <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="text" id="template-subject" name="subject" maxlength="998" required>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="template-body">Body <span class="req" aria-hidden="true">*</span></label>
+              <textarea class="textarea" id="template-body" name="contentHtml" rows="12" required></textarea>
+              <p class="hint">HTML is allowed. It is sanitised when the template is saved, then rendered as written.</p>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" type="button" data-action="close">Cancel</button>
+            <button class="btn btn-primary" type="submit" data-role="submit">Save template</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog class="modal modal-wide" id="template-preview" data-role="preview-dialog" aria-labelledby="template-preview-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="template-preview-title" data-role="title">Template preview</h2>
+          <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="muted" data-role="preview-subject"></p>
+          <!--/*
+            The body is the one field whose contract is "trusted HTML": it is
+            sanitised when the template is saved, so it is rendered as markup
+            here and nowhere else. Every other value on this page is escaped.
+          */-->
+          <div class="preview" data-role="preview-body" th:utext="${contentHtml}"></div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-secondary" type="button" data-action="close">Close</button>
+        </div>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/templates.js}"></script>
+</body>
+</html>

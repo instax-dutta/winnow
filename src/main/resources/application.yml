@@ -1,0 +1,85 @@
+server:
+  port: ${SERVER_PORT:8083}
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  application:
+    name: seo
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3307/emailsender_v01?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8}
+    username: ${DB_USERNAME:seo_v01}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      connection-timeout: 20000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  thymeleaf:
+    cache: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+seo:
+  secret-store:
+    path: ${SECRET_STORE_PATH:./.secrets}
+  storage:
+    upload-dir: ${UPLOAD_DIR:./data/exports}
+  quota:
+    daily-send-limit: 500
+    hourly-send-limit: 50
+    monthly-send-limit: 50000
+  mail:
+    connect-timeout: 15s
+    read-timeout: 30s
+    write-timeout: 30s
+    per-account-daily-limit: 500
+    per-account-hourly-limit: 50
+    batch-size: 200
+    retry-backoff: 5s
+  extraction:
+    connect-timeout: 5s
+    read-timeout: 10s
+    max-response-bytes: 2097152
+    max-redirects: 2
+    worker-threads: 8
+    queue-capacity: 500
+    per-domain-timeout-seconds: 15
+    max-domains-per-run: 5000
+    write-batch-size: 200
+  scraper:
+    base-url: ${SCRAPER_URL:http://127.0.0.1:3000}
+    connect-timeout: 5s
+    read-timeout: 15s
+    # The private-range block in UrlAllowList is unconditional and cannot be switched off.
+    # This flag adds a second, operator-controlled restriction on top of it: when it is
+    # false, only a host matching allowed-host-suffixes may be crawled.
+    allow-arbitrary-hosts: ${SCRAPER_ALLOW_ARBITRARY_HOSTS:true}
+    allowed-host-suffixes: []
+  bootstrap:
+    username: ${BOOTSTRAP_USERNAME:admin}
+    password: ${BOOTSTRAP_PASSWORD:}
+  jpa:
+    show-sql: false
+  scheduler:
+    outbox-delay-ms: ${SCHEDULER_OUTBOX_DELAY_MS:30000}
+    inbox-delay-ms: ${SCHEDULER_INBOX_DELAY_MS:300000}
+    extraction-delay-ms: ${SCHEDULER_EXTRACTION_DELAY_MS:60000}
+    extraction-run-timeout-minutes: ${SCHEDULER_EXTRACTION_TIMEOUT_MINUTES:30}
+    outbox-batch-size: ${SCHEDULER_OUTBOX_BATCH_SIZE:50}
+  security:
+    max-failed-logins: ${MAX_FAILED_LOGINS:5}
+    lock-duration: ${LOCK_DURATION:15m}

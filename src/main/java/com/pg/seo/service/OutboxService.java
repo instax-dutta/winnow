@@ -53,6 +53,21 @@ public class OutboxService {
         return toDto(row);
     }
 
+    /**
+     * One outbox row of the tenant.
+     *
+     * @param ownerUserId the tenant
+     * @param id          the row
+     * @return the row
+     * @throws NotFoundException when the row does not exist or belongs to another tenant
+     */
+    @Transactional(readOnly = true)
+    public OutboxDto get(Long ownerUserId, Long id) {
+        Outbox row = outboxes.findByIdAndOwnerUserId(id, ownerUserId)
+                .orElseThrow(() -> NotFoundException.of("Outbox row", id));
+        return toDto(row);
+    }
+
     @Transactional(readOnly = true)
     public List<OutboxDto> list(Long ownerUserId, Instant from, Instant to) {
         return outboxes.findByOwnerUserIdAndScheduledAtBetweenOrderByScheduledAtDesc(ownerUserId, from, to).stream()

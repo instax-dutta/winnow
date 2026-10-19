@@ -46,7 +46,7 @@ CREATE TABLE app_role (
 CREATE TABLE app_user_role (
     user_id    BIGINT UNSIGNED NOT NULL,
     role_id    BIGINT UNSIGNED NOT NULL,
-    granted_at DATETIME(6)     NOT NULL,
+    granted_at DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (user_id, role_id),
     KEY idx_app_user_role_role (role_id),
     CONSTRAINT fk_app_user_role_user FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE CASCADE,
@@ -185,8 +185,10 @@ CREATE TABLE campaign (
     created_by        BIGINT UNSIGNED NULL,
     updated_at        DATETIME(6)     NOT NULL,
     updated_by        BIGINT UNSIGNED NULL,
+    deleted_at        DATETIME(6)     NULL,
     PRIMARY KEY (id),
     KEY idx_campaign_owner (owner_user_id),
+    KEY idx_campaign_deleted_at (deleted_at),
     KEY idx_campaign_from (from_account_id),
     KEY idx_campaign_template (template_id),
     KEY idx_campaign_status_created (status, created_at),
@@ -232,8 +234,10 @@ CREATE TABLE outbox (
     created_by     BIGINT UNSIGNED NULL,
     updated_at     DATETIME(6)     NOT NULL,
     updated_by     BIGINT UNSIGNED NULL,
+    deleted_at     DATETIME(6)     NULL,
     PRIMARY KEY (id),
     KEY idx_outbox_status_scheduled (status, scheduled_at),
+    KEY idx_outbox_deleted_at (deleted_at),
     KEY idx_outbox_from (from_account_id),
     KEY idx_outbox_to (to_email),
     KEY idx_outbox_owner (owner_user_id),
@@ -255,8 +259,10 @@ CREATE TABLE extraction_run (
     created_by        BIGINT UNSIGNED NULL,
     updated_at        DATETIME(6)     NOT NULL,
     updated_by        BIGINT UNSIGNED NULL,
+    deleted_at        DATETIME(6)     NULL,
     PRIMARY KEY (id),
     KEY idx_extraction_run_owner (owner_user_id),
+    KEY idx_extraction_run_deleted_at (deleted_at),
     KEY idx_extraction_run_started (started_at),
     CONSTRAINT fk_extraction_run_owner FOREIGN KEY (owner_user_id) REFERENCES app_user (id) ON DELETE RESTRICT
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
@@ -309,3 +315,7 @@ INSERT INTO app_role (code, name, created_at, updated_at) VALUES
 -- bootstrap:hash generated with BCrypt, cost 12, password 'change-me-now'.
 INSERT INTO app_user (username, password_hash, email, status, created_at, updated_at)
 VALUES ('admin', '$2a$12$J9uQ1s4V2wZ0mH6Kq3T8bYxRn5LpD7cS1fG3hJ9kL2nO4pQ6rS8uW', 'admin@example.invalid', 'ACTIVE', NOW(6), NOW(6));
+
+INSERT INTO app_user_role (user_id, role_id, granted_at)
+SELECT u.id, r.id, NOW(6) FROM app_user u JOIN app_role r ON r.code = 'ROLE_ADMIN'
+WHERE u.username = 'admin';

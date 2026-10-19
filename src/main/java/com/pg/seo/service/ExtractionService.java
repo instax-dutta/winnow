@@ -5,6 +5,8 @@ import com.pg.seo.domain.ExtractionRun;
 import com.pg.seo.domain.ExtractionStatus;
 import com.pg.seo.domain.NotFoundException;
 import com.pg.seo.domain.ValidationException;
+import com.pg.seo.extraction.ExtractionSink;
+import com.pg.seo.extraction.ExtractionWorker;
 import com.pg.seo.model.ExtractionResultDto;
 import com.pg.seo.model.ExtractionRunDto;
 import com.pg.seo.model.PagedResponse;
@@ -12,11 +14,13 @@ import com.pg.seo.repository.ExtractionResultRepository;
 import com.pg.seo.repository.ExtractionRunRepository;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -55,15 +59,15 @@ public class ExtractionService {
 
     private final ExtractionRunRepository runs;
     private final ExtractionResultRepository extractionResults;
-    private final ObjectProvider<DomainCrawler> crawlers;
+    private final ObjectProvider<ExtractionWorker> workers;
 
     public ExtractionService(
             ExtractionRunRepository runs,
             ExtractionResultRepository extractionResults,
-            ObjectProvider<DomainCrawler> crawlers) {
+            ObjectProvider<ExtractionWorker> workers) {
         this.runs = runs;
         this.extractionResults = extractionResults;
-        this.crawlers = crawlers;
+        this.workers = workers;
     }
 
     /**
@@ -127,77 +131,113 @@ public class ExtractionService {
                 pageSize);
     }
 
+    /**
+     * Closes a run that was left behind.
+     *
+     * <p>A run always ends in {@code SUCCESS}, {@code PARTIAL} or {@code FAILED}. It is
+     * never left in {@code QUEUED} or {@code RUNNING}, so the operator always sees what
+     * happened to it.
+     *
+     * @param run    the run to close
+     * @param status the terminal status
+     * @param detail why it ended that way, may be null
+     */
+    @Transactional
+    public void closeRun(ExtractionRun run, ExtractionStatus status, String detail) {
+        Instant finished = Instant.now();
+        run.setStatus(status);
+        run.setErrorDetail(detail);
+        run.setFinishedAt(finished);
+        run.setUpdatedAt(finished);
+        runs.save(run);
+    }
+
+    /**
+     * Hands the domains of a run to the extraction worker.
+     *
+     * <p>The worker owns the fan-out, the deduplication and the batching. The service owns
+     * the run row and the sink that writes the results back. There is exactly one
+     * implementation of the crawl, in the extraction package.
+     */
     private void crawl(ExtractionRun run, List<DomainRow> domains) {
-        DomainCrawler crawler = crawlers.getIfAvailable();
-        if (crawler == null) {
+        ExtractionWorker worker = workers.getIfAvailable();
+        if (worker == null) {
             run.setStatus(ExtractionStatus.FAILED);
-            run.setErrorDetail("No crawler is registered for the extraction package");
+            run.setErrorDetail("No extraction worker is registered");
             run.setFinishedAt(Instant.now());
             run.setUpdatedAt(Instant.now());
             runs.save(run);
             return;
         }
+        Instant started = Instant.now();
         run.setStatus(ExtractionStatus.RUNNING);
-        run.setUpdatedAt(Instant.now());
+        run.setStartedAt(started);
+        run.setUpdatedAt(started);
         runs.save(run);
 
-        Set<String> seen = new HashSet<>();
-        List<ExtractionResult> batch = new ArrayList<>(RESULT_BATCH_SIZE);
-        int failedDomains = 0;
-        int foundDomains = 0;
-
-        for (DomainRow domainRow : domains) {
-            List<String> addresses;
-            try {
-                addresses = crawler.findEmails(domainRow.domain());
-            } catch (RuntimeException e) {
-                failedDomains++;
-                continue;
-            }
-            if (addresses == null || addresses.isEmpty()) {
-                continue;
-            }
-            foundDomains++;
-            for (String address : addresses) {
-                String normalised = address == null ? "" : address.trim().toLowerCase(Locale.ROOT);
-                if (!ClientService.isValidEmail(normalised)) {
-                    continue;
-                }
-                if (!seen.add(normalised)) {
-                    continue;
-                }
-                ExtractionResult result = new ExtractionResult();
-                result.setRun(run);
-                result.setDomain(domainRow.domain());
-                result.setEmail(normalised);
-                result.setEmailHash(sha256(normalised));
-                result.setSourceRow(domainRow.rowNumber());
-                result.setCreatedAt(Instant.now());
-                batch.add(result);
-                if (batch.size() >= RESULT_BATCH_SIZE) {
-                    extractionResults.saveAll(batch);
-                    batch.clear();
-                }
-            }
+        List<ExtractionWorker.DomainEntry> entries = new ArrayList<>(domains.size());
+        for (DomainRow row : domains) {
+            entries.add(new ExtractionWorker.DomainEntry(row.domain(), row.rowNumber()));
         }
-        if (!batch.isEmpty()) {
-            extractionResults.saveAll(batch);
+        worker.run(run.getId(), entries, sinkFor(run));
+    }
+
+    /**
+     * The sink that writes the addresses of a run and closes it.
+     *
+     * <p>The sink deduplicates on the address hash, so a repeated address inside one run is
+     * stored once. The unique index on (run_id, email_hash) is the backstop.
+     *
+     * @param run the run the addresses belong to
+     * @return the sink, safe to call from several worker threads at once
+     */
+    public ExtractionSink sinkFor(ExtractionRun run) {
+        return new RunSink(run);
+    }
+
+    /** Writes the addresses of a run and closes it. */
+    private final class RunSink implements ExtractionSink {
+
+        private final ExtractionRun run;
+        private final Set<ByteBuffer> stored = ConcurrentHashMap.newKeySet();
+
+        RunSink(ExtractionRun run) {
+            this.run = run;
+            for (ExtractionResult result : extractionResults.findByRunId(run.getId())) {
+                stored.add(ByteBuffer.wrap(result.getEmailHash()));
+            }
         }
 
-        Instant finished = Instant.now();
-        run.setFinishedAt(finished);
-        run.setUpdatedAt(finished);
-        if (failedDomains == 0) {
-            run.setStatus(ExtractionStatus.SUCCESS);
-        } else if (foundDomains > 0) {
-            run.setStatus(ExtractionStatus.PARTIAL);
-        } else {
-            run.setStatus(ExtractionStatus.FAILED);
+        @Override
+        public void storeAddresses(List<ExtractionWorker.FoundAddress> batch) {
+            List<ExtractionResult> rows = new ArrayList<>(batch.size());
+            for (ExtractionWorker.FoundAddress address : batch) {
+                if (!stored.add(ByteBuffer.wrap(address.emailHash()))) {
+                    continue;
+                }
+                ExtractionResult row = new ExtractionResult();
+                row.setRun(run);
+                row.setDomain(address.domain());
+                row.setEmail(address.email());
+                row.setEmailHash(address.emailHash());
+                row.setSourceRow(address.sourceRow());
+                row.setCreatedAt(Instant.now());
+                rows.add(row);
+            }
+            if (!rows.isEmpty()) {
+                extractionResults.saveAll(rows);
+            }
         }
-        if (failedDomains > 0) {
-            run.setErrorDetail(failedDomains + " of " + domains.size() + " domains could not be crawled");
+
+        @Override
+        public void complete(ExtractionStatus status, String errorDetail) {
+            Instant finished = Instant.now();
+            run.setStatus(status);
+            run.setErrorDetail(errorDetail);
+            run.setFinishedAt(finished);
+            run.setUpdatedAt(finished);
+            runs.save(run);
         }
-        runs.save(run);
     }
 
     private List<DomainRow> readDomains(InputStream excel) {

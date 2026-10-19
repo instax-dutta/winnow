@@ -7,20 +7,27 @@ client that the original shipped alongside it.
 
 ## Ownership
 
-- `ExtractionService` - runs an extraction over an uploaded domain list.
 - `DomainCrawler` - fetches a domain and extracts addresses from the page.
+- `HttpDomainCrawler` - the implementation of `DomainCrawler`.
 - `UrlAllowList` - decides which hosts may be fetched.
+- `ScraperProperties` - `seo.scraper.*`: the sidecar base URL and the host allow-list.
 - `AmazonScraperClient` - talks to the Puppeteer sidecar.
+- `ScrapedProduct` - one product the sidecar returned.
+- `ExtractionWorker` - the bounded fan-out that crawls the domains of a run.
+- `ExtractionSink` - where the addresses and the final status of a run go.
 
 ## Local Contracts
 
 - Every outbound URL is validated by `UrlAllowList` before the request. A spreadsheet cell
   must never become an arbitrary request. The original fetched `https://` plus a cell value
-  with no allow-list, which is a server-side request forgery hole.
+  with no allow-list, which was a server-side request forgery hole.
 - Public addresses only. `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`,
-  `169.254.0.0/16`, `::1` and the link-local and unique-local ranges are rejected.
-- Only `https` and `http` are allowed. Redirects are followed at most 3 times and each hop is
-  re-validated against the allow-list.
+  `169.254.0.0/16`, `0.0.0.0/8`, `::1`, `fc00::/7`, `fe80::/10` and the IPv4-mapped
+  forms of those are rejected, together with multicast.
+- The host is resolved and **every** address it resolves to is checked, so a public name
+  that points at `127.0.0.1` is rejected.
+- Only `https` and `http` are allowed. Redirects are followed at most
+  `seo.extraction.max-redirects` times and each hop is re-validated against the allow-list.
 - Every fetch has an explicit connect and read timeout, and a response-size cap.
 - The crawler reads only the response body, never executes the page. No headless browser is
   used for domain crawling.
@@ -32,6 +39,8 @@ client that the original shipped alongside it.
 - A run's fan-out is bounded by a fixed pool and a bounded queue. Work is submitted in
   chunks, not one task per row.
 - Results are written in batches. Never one insert per address.
+- The scraper client only ever requests the configured base URL. The keyword travels in a
+  query parameter, never in the host or the path.
 
 ## Work Guidance
 
@@ -41,6 +50,19 @@ client that the original shipped alongside it.
 - The Amazon scraper client talks to a sidecar over loopback with a request timeout. The
   original bound the sidecar to every interface with a wildcard CORS header and no
   authentication, which made it an open proxy.
+- The extraction package never writes to the database. `ExtractionWorker` calls an
+  `ExtractionSink`, and the service or the job supplies it.
+
+## Public API
+
+| Type | Methods |
+|---|---|
+| `DomainCrawler` | `findEmails(String domain)` |
+| `UrlAllowList` | `check(URL)` throws `ValidationException`, `isAllowed(URL)` |
+| `HttpDomainCrawler` | `findEmails(String domain)` |
+| `AmazonScraperClient` | `scrape(String keyword, int page)` |
+| `ExtractionWorker` | `run(Long runId, List<DomainEntry> domains, ExtractionSink sink)` |
+| `ExtractionSink` | `storeAddresses(List<FoundAddress>)`, `complete(ExtractionStatus, String)` |
 
 ## Verification
 

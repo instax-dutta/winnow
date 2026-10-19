@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'SMTP accounts - Cold Mail'">SMTP accounts</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'smtp-accounts', 'SMTP accounts')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">SMTP accounts</h1>
+          <p class="page-sub">The mailboxes a campaign sends from. Secrets are stored in the secret store and are never sent back to the browser.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" type="button" data-action="create">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+            <span>Add account</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="smtp-search">Search accounts</label>
+            <input class="input input-sm" type="search" id="smtp-search" data-role="search"
+                   placeholder="Search by address, host or username" autocomplete="off">
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">SMTP accounts</caption>
+            <thead>
+              <tr>
+                <th scope="col">Address</th>
+                <th scope="col">Protocol</th>
+                <th scope="col">Host</th>
+                <th scope="col">Port</th>
+                <th scope="col">Auth</th>
+                <th scope="col">Secret</th>
+                <th scope="col">State</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-server"></use></svg>
+            <p class="empty-title">No SMTP accounts yet</p>
+            <p class="empty-text">Add the mailbox a campaign should send from.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" type="button" data-action="create">Add an account</button>
+            </div>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('smtp-pager')}"></div>
+      </section>
+
+      <dialog class="modal" id="smtp-dialog" data-role="dialog" aria-labelledby="smtp-dialog-title">
+        <form data-role="form" novalidate>
+          <div class="modal-head">
+            <h2 class="modal-title" id="smtp-dialog-title" data-role="title">Add SMTP account</h2>
+            <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger modal-error" data-role="error" role="alert" hidden></div>
+
+            <div class="field">
+              <label class="field-label" for="smtp-email">Address <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="email" id="smtp-email" name="email" maxlength="254" required
+                     autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label" for="smtp-protocol">Protocol <span class="req" aria-hidden="true">*</span></label>
+                <select class="select" id="smtp-protocol" name="protocol" required>
+                  <option value="SMTP">SMTP</option>
+                  <option value="SMTPS">SMTPS</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="smtp-port">Port <span class="req" aria-hidden="true">*</span></label>
+                <input class="input" type="number" id="smtp-port" name="port" min="1" max="65535" value="587" required>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="smtp-host">Host <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="text" id="smtp-host" name="host" maxlength="255" required
+                     placeholder="smtp.example.com" spellcheck="false">
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="smtp-username">Username <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="text" id="smtp-username" name="username" maxlength="254" required
+                     autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="smtp-secret">Secret</label>
+              <input class="input" type="password" id="smtp-secret" name="secret" maxlength="512"
+                     autocomplete="new-password">
+              <p class="hint" data-role="secret-hint">Leave empty to keep the stored secret unchanged.</p>
+            </div>
+
+            <div class="field">
+              <label class="checkbox">
+                <input type="checkbox" id="smtp-enabled" name="enabled" checked>
+                <span>Enabled for sending</span>
+              </label>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" type="button" data-action="close">Cancel</button>
+            <button class="btn btn-primary" type="submit" data-role="submit">Save account</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/smtp-accounts.js}"></script>
+</body>
+</html>

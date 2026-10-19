@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Clients - Cold Mail'">Clients</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'clients', 'Clients')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Clients</h1>
+          <p class="page-sub">The people and companies a campaign can reach. Clients arrive by spreadsheet import.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" type="button" data-action="import">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-upload"></use></svg>
+            <span>Import clients</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="client-search">Search clients</label>
+            <input class="input input-sm" type="search" id="client-search" data-role="search"
+                   placeholder="Search by name, email or group" autocomplete="off">
+          </div>
+          <div class="toolbar-filters">
+            <label class="sr-only" for="client-group">Filter by group</label>
+            <select class="select select-sm" id="client-group" data-role="group-filter">
+              <option value="">All groups</option>
+            </select>
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Clients</caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Website</th>
+                <th scope="col">Group</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-box"></use></svg>
+            <p class="empty-title">No clients yet</p>
+            <p class="empty-text">Import a spreadsheet of names, email addresses and web links, or run an extraction to build the list for you.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" type="button" data-action="import">Import clients</button>
+            </div>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('clients-pager')}"></div>
+      </section>
+
+      <dialog class="modal" id="client-dialog" data-role="dialog" aria-labelledby="client-dialog-title">
+        <form data-role="form" novalidate>
+          <div class="modal-head">
+            <h2 class="modal-title" id="client-dialog-title" data-role="title">Import clients</h2>
+            <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger modal-error" data-role="error" role="alert" hidden></div>
+
+            <div class="field">
+              <label class="field-label" for="client-file">Spreadsheet <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="file" id="client-file" name="file" accept=".xlsx,.xls,.csv" required>
+              <p class="hint">One client per row. The file is read in memory and is never written to disk.</p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="client-group-select">Group</label>
+              <select class="select" id="client-group-select" name="groupId" data-role="group-select">
+                <option value="">No group</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" type="button" data-action="close">Cancel</button>
+            <button class="btn btn-primary" type="submit" data-role="submit">Import clients</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/clients.js}"></script>
+</body>
+</html>

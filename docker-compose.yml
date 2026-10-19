@@ -1,0 +1,68 @@
+# Local development stack for seo-0.1.0.
+#
+#   docker compose up -d --build
+#   docker compose logs -f app
+#
+# The application listens on http://127.0.0.1:8083. The database is published on 127.0.0.1
+# only, so it is not reachable from outside the host.
+#
+# The bootstrap administrator is created from BOOTSTRAP_PASSWORD. Leave it empty on a shared
+# machine: the application then starts with the seeded administrator and logs a warning.
+#
+# This project is open source. There is no licence, no activation and no machine check.
+
+name: seo-v01
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: seo-v01-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-emailsender_v01}
+      MYSQL_USER: ${DB_USERNAME:-seo_v01}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-SeoV01DevPass!x}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-SeoV01Root!x}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "127.0.0.1:${DB_PORT:-3307}:3306"
+    volumes:
+      - seo-v01-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD:-SeoV01Root!x}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seo-v01-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: 8083
+      DB_URL: jdbc:mysql://db:3306/${DB_NAME:-emailsender_v01}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
+      DB_USERNAME: ${DB_USERNAME:-seo_v01}
+      DB_PASSWORD: ${DB_PASSWORD:-SeoV01DevPass!x}
+      BOOTSTRAP_USERNAME: ${BOOTSTRAP_USERNAME:-admin}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+      SECRET_STORE_PATH: /app/.secrets
+      UPLOAD_DIR: /app/data
+      SCRAPER_URL: ${SCRAPER_URL:-http://127.0.0.1:3000}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8083}:8083"
+    volumes:
+      - seo-v01-secrets:/app/.secrets
+      - seo-v01-data:/app/data
+
+volumes:
+  seo-v01-db:
+  seo-v01-secrets:
+  seo-v01-data:
