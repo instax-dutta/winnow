@@ -15,7 +15,7 @@ The gates are written before the implementation and are not edited to match the 
 - [x] G1: The project compiles from a clean checkout.
   CHECK: ./tools/verify/host-mvn.sh -DskipTests clean compile
   EXPECT: BUILD SUCCESS
-  EVIDENCE: automatic-evidence=v1; definition-sha256=0ddb55e5881eddae9e74d5fc3a09eb7cc8e6854dd5a0d3e8e6d3c8c9215ab020; exit=0; EXPECT=matched; output-sha256=d4a81527b83cefc8038050f07af34bd6b46b2a164d1b2b4789cf2ca0eb46fb2d; output-bytes=1821; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0ddb55e5881eddae9e74d5fc3a09eb7cc8e6854dd5a0d3e8e6d3c8c9215ab020; exit=0; EXPECT=matched; output-sha256=00596c909426c042a3c3e21f240cb7d6a3490c43dc9862db4c3c81429ded47fa; output-bytes=1821; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
 - [x] G2: The whole test suite passes.
   CHECK: ./tools/verify/host-mvn.sh test
