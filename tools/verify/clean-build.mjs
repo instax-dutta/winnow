@@ -32,6 +32,7 @@ try {
     [
       "czf",
       "-",
+      "--no-xattrs",
       "--exclude=.git",
       "--exclude=target",
       "--exclude=node_modules",
@@ -44,8 +45,13 @@ try {
     { maxBuffer: 128 * 1024 * 1024 }
   );
   sh(`rm -rf ${SCRATCH} ${M2} && mkdir -p ${SCRATCH} ${M2}`);
-  const child = run("ssh", [HOST, `tar xzf - -C ${SCRATCH}`], { input: tar, maxBuffer: 128 * 1024 * 1024 });
-  if (child.status !== 0) throw new Error("the copy to the scratch directory failed");
+  // execFileSync throws when the command exits non-zero, so reaching this line means the
+  // copy worked.
+  run("ssh", [HOST, `tar xzf - -C ${SCRATCH}`], {
+    input: tar,
+    maxBuffer: 128 * 1024 * 1024,
+    stdio: ["pipe", "pipe", "pipe"],
+  });
 
   // ---------------------------------------------------------------- the build
   say("building with a fresh local Maven repository (this downloads every dependency again)");

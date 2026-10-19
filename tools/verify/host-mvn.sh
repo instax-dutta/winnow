@@ -15,7 +15,7 @@ REMOTE="${SEO_BUILD_DIR:-~/seo-rebuild/app}"
 JAVA_HOME_REMOTE="/usr/lib/jvm/java-21-openjdk-amd64"
 
 # Mirror the working tree to the build host, then run the goal there.
-tar czf - \
+tar czf - --no-xattrs \
     --exclude='.git' \
     --exclude='target' \
     --exclude='node_modules' \

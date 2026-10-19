@@ -17,7 +17,7 @@ REMOTE="${SEO_BUILD_DIR:-~/seo-rebuild/app}"
 GOAL="${1:-compile}"
 
 echo "==> syncing $ROOT -> $HOST:$REMOTE"
-tar czf - \
+tar czf - --no-xattrs \
     --exclude='.git' \
     --exclude='target' \
     --exclude='node_modules' \

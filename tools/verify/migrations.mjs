@@ -76,7 +76,14 @@ if (!ROOT_PASSWORD || !DB_PASSWORD) {
 try {
   // ---------------------------------------------------------------- clean slate
   say("dropping the database so the migrations run from nothing");
-  sql(`DROP DATABASE IF EXISTS \`${DB}\`; CREATE DATABASE \`${DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;`);
+  // The database name is interpolated into the SQL. It is checked against a strict
+  // pattern first, so it can never carry a shell or SQL metacharacter.
+  if (!/^[a-z][a-z0-9_]{1,40}$/.test(DB)) {
+    throw new Error(`the database name is not a plain identifier: ${DB}`);
+  }
+  sql(
+    `DROP DATABASE IF EXISTS ${DB}; CREATE DATABASE ${DB} CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;`
+  );
 
   // ---------------------------------------------------------------- boot
   say("building the image");
