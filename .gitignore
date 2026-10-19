@@ -1,0 +1,32 @@
+# Secrets harvest output - contains LIVE credentials for third parties.
+# Kept on disk for the owner's inspection, deliberately NOT committed.
+SECRETS.txt
+
+# Build output
+target/
+build/
+*.jar
+*.war
+.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime
+*.log
+logs/
+node_modules/
+
+# unlazy machine-specific state
+.unlazy/
+.unlazy-hook-state.json
+.claude/settings.local.json
