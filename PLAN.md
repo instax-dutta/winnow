@@ -114,3 +114,31 @@ node <skill-dir>/scripts/gate-check.mjs --scope seo-v01-rebuild --log "leaf-1.1.
 node <skill-dir>/scripts/gate-check.mjs --scope seo-v01-rebuild --log "leaf-1.1.1 verified"
 node <skill-dir>/scripts/gate-check.mjs --scope seo-v01-rebuild --log "leaf-1.1.1 lease released"
 ```
+
+## Outcome
+
+Every leaf was implemented, reviewed against its DOX contract, and verified by the parent
+re-verification. The root ledger `GATES.md` reports **13 of 13 gates met**, each with
+recorded automatic evidence (`exit=0; EXPECT=matched`).
+
+The measured results, at the time of the run:
+
+| Gate | Outcome | What it measured |
+|---|---|---|
+| G1 | met | the project compiles from a clean checkout on the build host |
+| G2 | met | the whole suite passes: 197 tests, 0 failures, 0 errors, 0 skipped |
+| G3 | met | the containerised application starts, serves the login form, signs an administrator in and rejects a wrong password |
+| G4 | met | 218 files scanned, 0 credential literals |
+| G5 | met | 150 Java files, 0 rule violations, including the no-licence-gating rule |
+| G6 | met | 19 AGENTS.md files, sections and index consistent |
+| G7 | met | 75 tenant isolation tests pass |
+| G8 | met | the migrations apply to a clean MySQL 8: 14 tables, every expected column, 16 foreign keys, 9 unique indexes, utf8mb4 throughout, no credential column |
+| G9 | met | 49 CSRF tests pass, covering every mutating endpoint |
+| G10 | met | the harvest still finds 73 findings in the original |
+| G11 | met | 6 documents present and complete |
+| G12 | met | 46 original endpoints and 14 original tables are accounted for |
+| G13 | met | a fresh copy with an empty Maven repository builds and produces the 88 MB jar |
+
+Two defects were found by the tests during the run and fixed at the source, not in the test:
+the three tables that were missing the audit columns their entities carried, and the
+`@NotBlank` annotation on an enum field, which Hibernate Validator cannot handle.

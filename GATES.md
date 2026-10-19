@@ -12,20 +12,20 @@ the expectation matches.
 
 The gates are written before the implementation and are not edited to match the outcome.
 
-- [ ] G1: The project compiles from a clean checkout.
+- [x] G1: The project compiles from a clean checkout.
   CHECK: ./tools/verify/host-mvn.sh -DskipTests clean compile
   EXPECT: BUILD SUCCESS
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=0ddb55e5881eddae9e74d5fc3a09eb7cc8e6854dd5a0d3e8e6d3c8c9215ab020; exit=0; EXPECT=matched; output-sha256=d4a81527b83cefc8038050f07af34bd6b46b2a164d1b2b4789cf2ca0eb46fb2d; output-bytes=1821; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
 - [x] G2: The whole test suite passes.
   CHECK: ./tools/verify/host-mvn.sh test
   EXPECT: Tests run:
   EVIDENCE: automatic-evidence=v1; definition-sha256=6426bfa424a0fd3905758dffc5c3b37db5338e4058b518234686738813216d20; exit=0; EXPECT=matched; output-sha256=84349eeb4e41fceafb7223ed07635b960a0faf85eca1eb459cb45f589e6288b2; output-bytes=42636; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
-- [ ] G3: The packaged application starts and serves the login page.
+- [x] G3: The packaged application starts and serves the login page.
   CHECK: node tools/verify/app-boot.mjs
   EXPECT: APP-BOOT-PASS
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=dd6a845542ed3641d0bb656d6735beb991dd9ae29b97401661896903cfa9fe6c; exit=0; EXPECT=matched; output-sha256=ecdbd2f274af9d3d16fc74b7f0444a2f49982d689fe2861ce62b16437b835c29; output-bytes=318; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
 - [x] G4: No credential-shaped literal exists in the source tree.
   CHECK: node tools/verify/no-secrets.mjs
@@ -47,10 +47,10 @@ The gates are written before the implementation and are not edited to match the 
   EXPECT: Tests run:
   EVIDENCE: automatic-evidence=v1; definition-sha256=acd69fda76c796dd1b8cb9306b17d05a01f14ae73321f180386080520ca1da03; exit=0; EXPECT=matched; output-sha256=955716e66b689683656b44febb5a81758b0ff3ed213f36c75c1870a79d88184a; output-bytes=32480; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
-- [ ] G8: Every Flyway migration applies to a clean MySQL 8 schema.
+- [x] G8: Every Flyway migration applies to a clean MySQL 8 schema.
   CHECK: node tools/verify/migrations.mjs
   EXPECT: MIGRATIONS-PASS
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=f9d5ca79bca148c9d4b50eb7971b5abe6c16099a6c0372d8406c34e57cf5bcbe; exit=0; EXPECT=matched; output-sha256=b6f928018985213686763432049185eb60bc3f83c0ed4031e9d2a907a239e435; output-bytes=532; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
 - [x] G9: Every HTTP endpoint that mutates state rejects a request without a CSRF token.
   CHECK: ./tools/verify/host-mvn.sh -Dtest=CsrfProtectionIT test
@@ -72,10 +72,10 @@ The gates are written before the implementation and are not edited to match the 
   EXPECT: PARITY-PASS
   EVIDENCE: automatic-evidence=v1; definition-sha256=cf1c5c847ab21b41eec4a769a97502c596a8988be0e1fa1d576bc912d02b9691; exit=0; EXPECT=matched; output-sha256=58a6b85b51cf40963b77b5e54a39d1edecb610a0209dcfbf4b4d7cd31bb596da; output-bytes=76; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
-- [ ] G13: A fresh clone of the repository builds without the local Maven cache.
+- [x] G13: A fresh clone of the repository builds without the local Maven cache.
   CHECK: node tools/verify/clean-build.mjs
   EXPECT: CLEAN-BUILD-PASS
-  EVIDENCE: pending
+  EVIDENCE: automatic-evidence=v1; definition-sha256=7ab7397f9c36492f6fcc2445447b2e3d6dab1b675ecd2fc828c841f044cf8176; exit=0; EXPECT=matched; output-sha256=8ac33224aae4c2d2ad71d34d92ab1b9667579aee7316b67edcfafc930f65aeb1; output-bytes=323; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/seo-0.1.0; path=b93c3fbfaca3/30 entries
 
 <!--
 Notes for the checker:

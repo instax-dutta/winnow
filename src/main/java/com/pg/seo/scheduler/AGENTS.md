@@ -9,6 +9,7 @@ service. The scheduler package owns when work happens, never what the work does.
 
 - `OutboxDispatchJob` - claims due outbox rows and dispatches them.
 - `InboxPollJob` - polls configured mailboxes for new messages.
+- `CampaignDispatchJob` - claims the queued campaigns and sends their recipients.
 - `ExtractionJob` - advances long-running extraction runs.
 
 ## Local Contracts
