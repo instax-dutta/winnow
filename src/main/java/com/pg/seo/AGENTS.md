@@ -79,6 +79,7 @@ web  ->  service  ->  repository  ->  domain
 | Path | Scope |
 |---|---|
 | `src/main/java/com/pg/seo/domain/` | Entity and enum rules, audited base type, soft-delete contract |
+| `src/main/java/com/pg/seo/model/` | DTO contract, what a DTO may and may not carry |
 | `src/main/java/com/pg/seo/repository/` | Repository method naming, tenant filter contract, query rules |
 | `src/main/java/com/pg/seo/service/` | Service responsibilities, transaction boundaries, tenant enforcement |
 | `src/main/java/com/pg/seo/web/` | Endpoint conventions, response envelope, error mapping |

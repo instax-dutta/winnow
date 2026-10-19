@@ -23,7 +23,7 @@ tar czf - \
     --exclude='node_modules' \
     --exclude='.unlazy' \
     --exclude='reference' \
-    -C "$ROOT" . | ssh "$HOST" "mkdir -p '$REMOTE' && tar xzf - -C '$REMOTE'"
+    -C "$ROOT" . | ssh "$HOST" "mkdir -p $REMOTE && tar xzf - -C $REMOTE"
 
 echo "==> mvn $GOAL on $HOST"
-ssh "$HOST" "cd '$REMOTE' && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./mvnw -B $GOAL"
+ssh "$HOST" "cd $REMOTE && JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./mvnw -B $GOAL"

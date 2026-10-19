@@ -1,0 +1,316 @@
+package com.pg.seo.service;
+
+import com.pg.seo.domain.ExtractionResult;
+import com.pg.seo.domain.ExtractionRun;
+import com.pg.seo.domain.ExtractionStatus;
+import com.pg.seo.domain.NotFoundException;
+import com.pg.seo.domain.ValidationException;
+import com.pg.seo.model.ExtractionResultDto;
+import com.pg.seo.model.ExtractionRunDto;
+import com.pg.seo.model.PagedResponse;
+import com.pg.seo.repository.ExtractionResultRepository;
+import com.pg.seo.repository.ExtractionRunRepository;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Pattern;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Extraction runs and their results.
+ *
+ * <p>A run starts with a list of domains read from column A of an uploaded spreadsheet. The
+ * domains are handed to the crawler one at a time. A domain that fails never fails the
+ * run: it is counted and the run ends as partial.
+ */
+@Service
+public class ExtractionService {
+
+    /** The size of one insert batch. */
+    private static final int RESULT_BATCH_SIZE = 200;
+
+    /** The largest number of domains one run accepts. */
+    private static final int MAX_DOMAINS = 5000;
+
+    /** The largest page a caller may ask for. */
+    private static final int MAX_PAGE_SIZE = 500;
+
+    private static final Pattern DOMAIN = Pattern.compile(
+            "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$");
+
+    private final ExtractionRunRepository runs;
+    private final ExtractionResultRepository extractionResults;
+    private final ObjectProvider<DomainCrawler> crawlers;
+
+    public ExtractionService(
+            ExtractionRunRepository runs,
+            ExtractionResultRepository extractionResults,
+            ObjectProvider<DomainCrawler> crawlers) {
+        this.runs = runs;
+        this.extractionResults = extractionResults;
+        this.crawlers = crawlers;
+    }
+
+    /**
+     * Starts a run over the domains in {@code excel}.
+     *
+     * <p>The run is created in the state {@code QUEUED} and the returned view is the run as
+     * it was created. The crawl then runs inline, so the stored run usually has already
+     * reached its final state when this method returns; {@link #get} reports the current
+     * state.
+     *
+     * @param fileName the name of the uploaded file, kept as metadata only
+     */
+    // Not transactional on purpose: the crawl is an outbound call and it must not hold a
+    // database transaction open.
+    public ExtractionRunDto start(Long ownerUserId, String fileName, InputStream excel) {
+        List<DomainRow> domains = readDomains(excel);
+        Instant now = Instant.now();
+        ExtractionRun run = new ExtractionRun();
+        run.setOwnerUserId(ownerUserId);
+        run.setStatus(ExtractionStatus.QUEUED);
+        run.setDomainCount(domains.size());
+        run.setSourceFileName(safeFileName(fileName));
+        run.setStartedAt(now);
+        run.setCreatedAt(now);
+        run.setCreatedBy(ownerUserId);
+        run.setUpdatedAt(now);
+        run.setUpdatedBy(ownerUserId);
+        runs.save(run);
+
+        ExtractionRunDto started = toDto(run);
+        crawl(run, domains);
+        return started;
+    }
+
+    @Transactional(readOnly = true)
+    public ExtractionRunDto get(Long ownerUserId, Long id) {
+        return toDto(require(ownerUserId, id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExtractionRunDto> list(Long ownerUserId) {
+        return runs.findByOwnerUserIdOrderByStartedAtDesc(ownerUserId).stream()
+                .map(ExtractionService::toDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<ExtractionResultDto> results(Long ownerUserId, Long runId, int start, int length) {
+        require(ownerUserId, runId);
+        int pageSize = Math.min(Math.max(length, 1), MAX_PAGE_SIZE);
+        int offset = Math.max(start, 0);
+        List<ExtractionResult> all = extractionResults.findByRunId(runId);
+        List<ExtractionResult> page = all.subList(
+                Math.min(offset, all.size()), Math.min(offset + pageSize, all.size()));
+        return PagedResponse.of(
+                page.stream().map(ExtractionService::toDto).toList(),
+                all.size(),
+                all.size(),
+                1,
+                offset,
+                pageSize);
+    }
+
+    private void crawl(ExtractionRun run, List<DomainRow> domains) {
+        DomainCrawler crawler = crawlers.getIfAvailable();
+        if (crawler == null) {
+            run.setStatus(ExtractionStatus.FAILED);
+            run.setErrorDetail("No crawler is registered for the extraction package");
+            run.setFinishedAt(Instant.now());
+            run.setUpdatedAt(Instant.now());
+            runs.save(run);
+            return;
+        }
+        run.setStatus(ExtractionStatus.RUNNING);
+        run.setUpdatedAt(Instant.now());
+        runs.save(run);
+
+        Set<String> seen = new HashSet<>();
+        List<ExtractionResult> batch = new ArrayList<>(RESULT_BATCH_SIZE);
+        int failedDomains = 0;
+        int foundDomains = 0;
+
+        for (DomainRow domainRow : domains) {
+            List<String> addresses;
+            try {
+                addresses = crawler.findEmails(domainRow.domain());
+            } catch (RuntimeException e) {
+                failedDomains++;
+                continue;
+            }
+            if (addresses == null || addresses.isEmpty()) {
+                continue;
+            }
+            foundDomains++;
+            for (String address : addresses) {
+                String normalised = address == null ? "" : address.trim().toLowerCase(Locale.ROOT);
+                if (!ClientService.isValidEmail(normalised)) {
+                    continue;
+                }
+                if (!seen.add(normalised)) {
+                    continue;
+                }
+                ExtractionResult result = new ExtractionResult();
+                result.setRun(run);
+                result.setDomain(domainRow.domain());
+                result.setEmail(normalised);
+                result.setEmailHash(sha256(normalised));
+                result.setSourceRow(domainRow.rowNumber());
+                result.setCreatedAt(Instant.now());
+                batch.add(result);
+                if (batch.size() >= RESULT_BATCH_SIZE) {
+                    extractionResults.saveAll(batch);
+                    batch.clear();
+                }
+            }
+        }
+        if (!batch.isEmpty()) {
+            extractionResults.saveAll(batch);
+        }
+
+        Instant finished = Instant.now();
+        run.setFinishedAt(finished);
+        run.setUpdatedAt(finished);
+        if (failedDomains == 0) {
+            run.setStatus(ExtractionStatus.SUCCESS);
+        } else if (foundDomains > 0) {
+            run.setStatus(ExtractionStatus.PARTIAL);
+        } else {
+            run.setStatus(ExtractionStatus.FAILED);
+        }
+        if (failedDomains > 0) {
+            run.setErrorDetail(failedDomains + " of " + domains.size() + " domains could not be crawled");
+        }
+        runs.save(run);
+    }
+
+    private List<DomainRow> readDomains(InputStream excel) {
+        List<DomainRow> domains = new ArrayList<>();
+        try (XSSFWorkbook workbook = new XSSFWorkbook(excel)) {
+            Sheet sheet = workbook.getSheetAt(0);
+            if (sheet == null) {
+                return domains;
+            }
+            for (Row row : sheet) {
+                if (domains.size() >= MAX_DOMAINS) {
+                    break;
+                }
+                String value = normaliseDomain(cellText(row.getCell(0)));
+                if (value == null) {
+                    continue;
+                }
+                domains.add(new DomainRow(row.getRowNum() + 1, value));
+            }
+        } catch (IOException | RuntimeException e) {
+            throw new ValidationException("The uploaded file could not be read as a spreadsheet");
+        }
+        return domains;
+    }
+
+    private ExtractionRun require(Long ownerUserId, Long id) {
+        return runs
+                .findByIdAndOwnerUserId(id, ownerUserId)
+                .orElseThrow(() -> NotFoundException.of("Extraction run", id));
+    }
+
+    static String normaliseDomain(String value) {
+        if (value == null) {
+            return null;
+        }
+        String domain = value.trim().toLowerCase(Locale.ROOT);
+        if (domain.isEmpty()) {
+            return null;
+        }
+        int scheme = domain.indexOf("://");
+        if (scheme >= 0) {
+            domain = domain.substring(scheme + 3);
+        }
+        int slash = domain.indexOf('/');
+        if (slash >= 0) {
+            domain = domain.substring(0, slash);
+        }
+        int colon = domain.indexOf(':');
+        if (colon >= 0) {
+            domain = domain.substring(0, colon);
+        }
+        while (domain.endsWith(".")) {
+            domain = domain.substring(0, domain.length() - 1);
+        }
+        if (domain.isEmpty() || !DOMAIN.matcher(domain).matches()) {
+            return null;
+        }
+        return domain;
+    }
+
+    private static String safeFileName(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return null;
+        }
+        String name = fileName.replace('\\', '/');
+        int slash = name.lastIndexOf('/');
+        if (slash >= 0) {
+            name = name.substring(slash + 1);
+        }
+        name = name.replaceAll("[\\p{Cntrl}]", "").trim();
+        if (name.isEmpty()) {
+            return null;
+        }
+        return name.length() > 512 ? name.substring(0, 512) : name;
+    }
+
+    private static byte[] sha256(String value) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available", e);
+        }
+    }
+
+    private static String cellText(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+        CellType type = cell.getCellType() == CellType.FORMULA ? cell.getCachedFormulaResultType() : cell.getCellType();
+        return switch (type) {
+            case STRING -> cell.getStringCellValue().trim();
+            case NUMERIC -> Long.toString((long) cell.getNumericCellValue());
+            case BOOLEAN -> Boolean.toString(cell.getBooleanCellValue());
+            default -> "";
+        };
+    }
+
+    private static ExtractionRunDto toDto(ExtractionRun run) {
+        return new ExtractionRunDto(
+                run.getId(),
+                run.getStatus(),
+                run.getDomainCount(),
+                run.getSourceFileName(),
+                run.getStartedAt(),
+                run.getFinishedAt(),
+                run.getErrorDetail());
+    }
+
+    private static ExtractionResultDto toDto(ExtractionResult result) {
+        return new ExtractionResultDto(
+                result.getId(), result.getDomain(), result.getEmail(), result.getSourceRow());
+    }
+
+    /** One domain of the uploaded list, with the row it came from. */
+    private record DomainRow(int rowNumber, String domain) {}
+}

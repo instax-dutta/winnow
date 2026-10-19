@@ -29,9 +29,13 @@ is the single place that answers "who is calling and are they allowed to".
 - The login response never reveals whether the failure was a bad password, an unknown user, a
   disabled account, or a failed lockout. One message for all of them.
 - Failed logins are counted and the account locks. The original had no lockout at all.
-- There is no licence check, no MAC-address check and no JWT licence blob. The original
-  shipped an HS256 licence token whose signature was never verified, so it was forgeable, and
-  it expired on 2025-09-18, which locked the application out entirely.
+- **No licence gating.** This project is open source. There is no licence token, no licence
+  key, no activation check, and no machine fingerprinting. The original shipped an HS256
+  licence token whose signature was never verified, so it was forgeable, and it expired on
+  2025-09-18, which locked the application out entirely. Neither the token nor the
+  mechanism is carried over, and `tools/verify/code-hygiene.mjs` fails the build if a
+  licence check or a `getHardwareAddress` call reappears. Authentication and roles are not
+  licensing and stay.
 
 ## Work Guidance
 

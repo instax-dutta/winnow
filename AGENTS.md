@@ -86,6 +86,26 @@ found in the reverse engineering. Read `docs/reverse-engineering/` before changi
 that the original defined - it is the record of what the original actually did, including the
 bugs, so a change is never an accidental regression.
 
+## Open Source
+
+This project is intended for open source release. It carries **no licence gating of any
+kind** and no activation mechanism:
+
+- No machine fingerprinting. The original application refused to authenticate unless the
+  host's MAC address matched a value in its config, which is a licensing control dressed up
+  as security. There is no `NetworkInterface` or `getHardwareAddress` call in this codebase,
+  and `tools/verify/code-hygiene.mjs` fails the build if one reappears.
+- No licence token, licence key or activation check. The original shipped an HS256 JWT that
+  it only ever *decoded* without verifying the signature, so it was trivially forgeable, and
+  it expired on 2025-09-18 which locked the application out entirely. Neither the token nor
+  the mechanism is carried over.
+- No feature is held back behind a licence. Everything in this repository is released under
+  the same terms.
+- `seo.bootstrap.*` exists only to create the first administrator on a fresh install. It is
+  a deployment convenience, not a licence.
+
+Authentication and role-based authorization are NOT licensing. They stay.
+
 ## Stack Contract
 
 - Java 21, Spring Boot 3.5.x, Maven (wrapper only - `mvnw`, never a system Maven).

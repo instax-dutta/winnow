@@ -16,4 +16,8 @@ public interface InboxMessageRepository extends JpaRepository<InboxMessage, Long
     boolean existsByAccountIdAndProviderMessageId(Long accountId, String providerMessageId);
 
     long countByAccountIdAndReceivedAtBetween(Long accountId, Instant from, Instant to);
+
+    long countByAccountIdAndReadFalse(Long accountId);
+
+    long countByAccountIdAndReadFalseAndReceivedAtBetween(Long accountId, Instant from, Instant to);
 }

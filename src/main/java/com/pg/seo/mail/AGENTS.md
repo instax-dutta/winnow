@@ -8,8 +8,12 @@ rendering and the quota accounting.
 ## Ownership
 
 - `MailSender` - the interface every provider implements.
+- `SendRequest` - one message for one recipient.
+- `SendResult` - the outcome of one send.
+- `MailException` - a provider refused or failed to deliver.
 - `SmtpMailSender` - sends through an SMTP account.
 - `GmailMailSender` - sends through a Google OAuth account.
+- `MimeMessageBuilder` - builds the MIME body shared by both providers.
 - `MailTemplateRenderer` - renders the HTML body from a template and a recipient context.
 - `QuotaService` - counts what was sent and what remains.
 
@@ -32,6 +36,11 @@ rendering and the quota accounting.
 - Rate limiting is per sending account and configurable. The original had a monthly cap of
   50,000 mislabelled as a daily cap, and no per-account pacing at all.
 - A per-recipient failure never fails the batch. The failure and its cause are recorded.
+- A failure message never carries a credential and never carries the verbatim response of a
+  mail server. Only the type of the failure is reported.
+- `SendRequest` names the sending account by `ownerUserId` and `accountId`, because an
+  adapter reads the account row to find the credential and every read of tenant data
+  filters on the owner id.
 
 ## Work Guidance
 
@@ -40,6 +49,38 @@ rendering and the quota accounting.
 - A credential lookup happens inside the adapter, not in the service, so the service never
   holds a secret.
 - Test a provider against a local fake server or a mocked transport, never a live mailbox.
+
+## Public API
+
+```java
+public interface MailSender {
+    SendResult send(SendRequest request) throws MailException;
+    String providerName();
+}
+
+public record SendRequest(
+        String fromEmail, String toEmail, String subject, String htmlBody,
+        String textBody, Map<String,String> variables, String replyTo,
+        Long ownerUserId, Long accountId) { /* a seven argument form without the
+                                                 account scope also exists */ }
+
+public record SendResult(
+        boolean success, String providerMessageId, String errorMessage, String failureCode) { }
+
+public class MailException extends RuntimeException { }
+```
+
+- `SmtpMailSender` and `GmailMailSender` take the account repository, the `SecretStore` and
+  the `MailProperties`. Both resolve their credential at call time. They are two beans of
+  the `MailSender` type, so a caller injects the concrete type or qualifies the bean
+  (`smtpMailSender`, `gmailMailSender`).
+- `MailTemplateRenderer.render(String contentHtml, Map<String,String> variables)` replaces
+  every `{{Name}}` placeholder. Every substituted value is HTML escaped. There is no raw
+  mode. A dotted name is looked up as the whole key first and then as a path into a nested
+  map.
+- `QuotaService.countByStatus`, `sentToday`, `sentThisHour`, `sentThisMonth` and
+  `assertWithinQuota` count the deliveries of a tenant and a sending account. The windows
+  are calendar windows in UTC.
 
 ## Verification
 

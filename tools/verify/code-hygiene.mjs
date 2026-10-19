@@ -15,15 +15,15 @@ const rel = (p) => relative(ROOT, p);
 const SRC = join(ROOT, "src");
 const SKIP_DIRS = new Set(["target", "node_modules"]);
 
-const walk = (dir, exts) => {
+const walk = (dir, keep) => {
   const out = [];
   if (!existsOk(dir)) return out;
   for (const e of readdirSync(dir)) {
     if (SKIP_DIRS.has(e)) continue;
     const p = join(dir, e);
     const st = statSync(p);
-    if (st.isDirectory()) out.push(...walk(p, exts));
-    else if (exts.has(extname(p))) out.push(p);
+    if (st.isDirectory()) out.push(...walk(p, keep));
+    else if (keep(p)) out.push(p);
   }
   return out;
 };
@@ -36,7 +36,7 @@ const existsOk = (d) => {
   }
 };
 
-const javaFiles = walk(SRC, new Set([".java"]));
+const javaFiles = walk(SRC, (p) => extname(p) === ".java");
 const findings = [];
 const add = (file, rule, line, text) => findings.push({ file: rel(file), rule, line, text: text.trim().slice(0, 100) });
 
@@ -86,7 +86,29 @@ for (const f of javaFiles) {
 
     // Rule 12: no hardcoded bearer/authorization header value
     if (/"Bearer\s+[A-Za-z0-9._-]{10,}"/.test(line)) add(f, "hardcoded-bearer", n, line);
+
+    // Rule 14: the application is open source. No licence gating of any kind may
+    // reappear: no machine fingerprinting, no licence token, no licence key.
+    if (/\bgetHardwareAddress\s*\(/.test(line)) add(f, "machine-fingerprint", n, line);
+    if (/\bNetworkInterface\b/.test(line)) add(f, "machine-fingerprint", n, line);
+    if (/\bJWT\.decode\s*\(/.test(line)) add(f, "license-token-decode", n, line);
+    if (/import\s+com\.auth0\.jwt/.test(line)) add(f, "license-token-decode", n, line);
+    if (/\blicen[cs]e[-_.]?(key|token|check|validat)/i.test(line)) add(f, "license-gating", n, line);
   });
+}
+
+// Rule 14b: no licence or mac property in any configuration file
+for (const f of [
+  ...walk(join(ROOT, "src", "main", "resources"), (p) => /\.(yml|yaml|properties)$/.test(p)),
+  ...walk(join(ROOT, "src", "test", "resources"), (p) => /\.(yml|yaml|properties)$/.test(p)),
+]) {
+  readFileSync(f, "utf8")
+    .split(/\r?\n/)
+    .forEach((line, i) => {
+      if (/^\s*#/.test(line)) return;
+      if (/^\s*(licen[cs]e|mac|license-key|activation)\s*[:=]/i.test(line))
+        add(f, "license-config-key", i + 1, line);
+    });
 }
 
 // Rule 13: no secret-shaped field on a JPA entity without @JsonIgnore
