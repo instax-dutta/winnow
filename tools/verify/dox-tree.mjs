@@ -27,7 +27,7 @@ const SECTIONS = [
   "## Child DOX Index",
 ];
 
-const SKIP_DIRS = new Set([".git", "target", "node_modules", "reference", ".unlazy"]);
+const SKIP_DIRS = new Set([".git", "target", "node_modules", ".unlazy"]);
 
 const walk = (dir) => {
   const out = [];
