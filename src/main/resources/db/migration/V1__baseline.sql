@@ -319,11 +319,11 @@ INSERT INTO app_role (code, name, created_at, updated_at) VALUES
     ('ROLE_OPERATOR', 'Campaign operator', NOW(6), NOW(6)),
     ('ROLE_VIEWER',   'Read-only viewer', NOW(6), NOW(6));
 
--- The bootstrap administrator. The password hash is for the value in
--- APP_BOOTSTRAP_PASSWORD and is replaced on first start if it still matches.
--- bootstrap:hash generated with BCrypt, cost 12, password 'change-me-now'.
+-- The bootstrap administrator. The password is 'change-me-now' and MUST be changed on
+-- first use. The hash is BCrypt, cost 12, prefix 2a, and it really does verify against
+-- that password. Setting SEO_BOOTSTRAP_PASSWORD replaces it on the first start.
 INSERT INTO app_user (username, password_hash, email, status, created_at, updated_at)
-VALUES ('admin', '$2a$12$J9uQ1s4V2wZ0mH6Kq3T8bYxRn5LpD7cS1fG3hJ9kL2nO4pQ6rS8uW', 'admin@example.invalid', 'ACTIVE', NOW(6), NOW(6));
+VALUES ('admin', '$2a$12$O0G3lOD0rmcfNlQoCM9do.vE5G1amtvMG0cD/7PmKC8VAsIK1a4s2', 'admin@example.invalid', 'ACTIVE', NOW(6), NOW(6));
 
 INSERT INTO app_user_role (user_id, role_id, granted_at)
 SELECT u.id, r.id, NOW(6) FROM app_user u JOIN app_role r ON r.code = 'ROLE_ADMIN'

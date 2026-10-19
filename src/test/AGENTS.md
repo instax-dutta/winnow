@@ -32,6 +32,10 @@ The files in the tree:
 
 - The test profile uses H2 in MySQL-compatibility mode with Flyway on. The same migrations
   that run in production run here.
+- **Every test that loads the Spring context carries `@ActiveProfiles("test")`.** Without
+  it the context uses the production datasource from `src/main/resources/application.yml`
+  and tries to reach a real MySQL. That is the default configuration, not a fallback, and
+  it is the fastest way to write a test that touches a real database by accident.
 - The test profile in `src/test/resources` shadows the one in `src/main/resources`. It
   carries everything that file carries and holds the scheduled jobs back, so a job never
   runs while a test runs.
