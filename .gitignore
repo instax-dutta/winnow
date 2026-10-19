@@ -2,6 +2,9 @@
 # Kept on disk for the owner's inspection, deliberately NOT committed.
 SECRETS.txt
 
+# The development database credentials. Never committed, never in a script.
+.env.development
+
 # Build output
 target/
 build/

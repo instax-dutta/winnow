@@ -27,9 +27,12 @@ public class TemplateService {
     private final EmailTemplateRepository templates;
     private final AppUserRepository users;
 
-    public TemplateService(EmailTemplateRepository templates, AppUserRepository users) {
+    private final HtmlSanitiser sanitiser;
+
+    public TemplateService(EmailTemplateRepository templates, AppUserRepository users, HtmlSanitiser sanitiser) {
         this.templates = templates;
         this.users = users;
+        this.sanitiser = sanitiser;
     }
 
     /**
@@ -59,7 +62,8 @@ public class TemplateService {
         template.setOwnerUserId(ownerUserId);
         template.setName(request.name().trim());
         template.setSubject(request.subject().trim());
-        template.setContentHtml(request.contentHtml());
+        // The body is rendered without escaping, so it is sanitised on write.
+        template.setContentHtml(sanitiser.clean(request.contentHtml()));
         template.setStatus(TemplateStatus.DRAFT);
         template.setVersion(1);
         template.setCreatedAt(now);
@@ -75,7 +79,7 @@ public class TemplateService {
         EmailTemplate template = require(ownerUserId, id);
         String name = request.name().trim();
         String subject = request.subject().trim();
-        String content = request.contentHtml();
+        String content = sanitiser.clean(request.contentHtml());
         if (Objects.equals(name, template.getName())
                 && Objects.equals(subject, template.getSubject())
                 && Objects.equals(content, template.getContentHtml())) {

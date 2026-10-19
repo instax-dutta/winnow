@@ -152,6 +152,15 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+          <!--
+            Surefire's default includes do not match *IT.java, so the integration tests
+            would never run. The gate for "the whole suite passes" has to mean the whole
+            suite, so the integration tests are included explicitly.
+          -->
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*IT.java</include>
+          </includes>
         </configuration>
       </plugin>
     </plugins>

@@ -13,12 +13,12 @@ the expectation matches.
 The gates are written before the implementation and are not edited to match the outcome.
 
 - [ ] G1: The project compiles from a clean checkout.
-  CHECK: ./mvnw -q -B -DskipTests clean compile
+  CHECK: ./tools/verify/host-mvn.sh -q -DskipTests clean compile
   EXPECT: BUILD SUCCESS
   EVIDENCE: pending
 
 - [ ] G2: The whole test suite passes.
-  CHECK: ./mvnw -B test
+  CHECK: ./tools/verify/host-mvn.sh test
   EXPECT: Tests run:
   EVIDENCE: pending
 
@@ -43,7 +43,7 @@ The gates are written before the implementation and are not edited to match the 
   EVIDENCE: pending
 
 - [ ] G7: One authenticated tenant cannot read or write another tenant's data.
-  CHECK: ./mvnw -B test -Dtest='TenantIsolationIT'
+  CHECK: ./tools/verify/host-mvn.sh -Dtest=TenantIsolationIT test
   EXPECT: Tests run:
   EVIDENCE: pending
 
@@ -53,7 +53,7 @@ The gates are written before the implementation and are not edited to match the 
   EVIDENCE: pending
 
 - [ ] G9: Every HTTP endpoint that mutates state rejects a request without a CSRF token.
-  CHECK: ./mvnw -B test -Dtest='CsrfProtectionIT'
+  CHECK: ./tools/verify/host-mvn.sh -Dtest=CsrfProtectionIT test
   EXPECT: Tests run:
   EVIDENCE: pending
 
@@ -79,10 +79,11 @@ The gates are written before the implementation and are not edited to match the 
 
 <!--
 Notes for the checker:
-- G1, G2, G7 and G9 run Maven, which needs a JDK 21 on PATH and network access for the
-  first dependency resolution. The repository ships the Maven wrapper, so no system Maven
-  is required.
-- G3 and G8 need the dedicated MySQL 8 container on the build host. Both are skipped with
-  an explicit SKIP notice rather than a silent pass when the database is unreachable.
+- G1, G2, G7 and G9 run Maven on the build host through tools/verify/host-mvn.sh, which
+  mirrors the working tree to tejes@pelican and runs the Maven wrapper there with JDK 21.
+  The repository ships the wrapper, so no system Maven is required anywhere.
+- G3, G8 and G13 need the dedicated MySQL 8 container on the build host and the development
+  credentials in .env.development, which is git-ignored. Each of them says so explicitly
+  and fails rather than passing silently when the credentials are absent.
 - G10 writes SECRETS.txt, which is git-ignored. The gate asserts the count, not the content.
 -->

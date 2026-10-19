@@ -10,6 +10,7 @@
  * Exit 0 and print "APP-BOOT-PASS" when the application boots and serves.
  */
 import { execFileSync, spawn } from "node:child_process";
+import { devEnv } from "./dev-env.mjs";
 import { existsSync, rmSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,8 +25,8 @@ const PORT = Number(process.env.SEO_APP_PORT || 20000 + Math.floor(Math.random()
 const DB_URL =
   process.env.SEO_DB_URL ||
   "jdbc:mysql://127.0.0.1:3307/emailsender_v01?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8";
-const USER = process.env.SEO_DB_USER || "seo_v01";
-const PASSWORD = process.env.SEO_DB_PASSWORD || "SeoV01DevPass!x";
+const USER = devEnv("SEO_DB_USERNAME", "seo_v01");
+const PASSWORD = devEnv("SEO_DB_PASSWORD");
 const ADMIN_PASSWORD = process.env.SEO_ADMIN_PASSWORD || "boot-check-password-1";
 
 const sh = (cmd) => execFileSync("ssh", [HOST, cmd], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -42,6 +43,12 @@ const shDetached = (cmd) => {
   const child = spawn("ssh", [HOST, cmd], { detached: true, stdio: "ignore" });
   child.unref();
 };
+
+if (!PASSWORD) {
+  console.error("APP-BOOT-FAIL: the development credentials are not available.");
+  console.error("Create .env.development at the repository root with SEO_DB_PASSWORD.");
+  process.exit(1);
+}
 
 try {
   // ---------------------------------------------------------------- build

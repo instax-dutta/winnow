@@ -80,6 +80,8 @@ seo:
     extraction-delay-ms: ${SCHEDULER_EXTRACTION_DELAY_MS:60000}
     extraction-run-timeout-minutes: ${SCHEDULER_EXTRACTION_TIMEOUT_MINUTES:30}
     outbox-batch-size: ${SCHEDULER_OUTBOX_BATCH_SIZE:50}
+    campaign-delay-ms: ${SCHEDULER_CAMPAIGN_DELAY_MS:30000}
+    campaign-batch-size: ${SCHEDULER_CAMPAIGN_BATCH_SIZE:10}
   security:
     max-failed-logins: ${MAX_FAILED_LOGINS:5}
     lock-duration: ${LOCK_DURATION:15m}

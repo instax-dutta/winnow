@@ -47,6 +47,9 @@ public class Campaign extends TenantOwnedEntity {
     @Column(name = "status", nullable = false, length = 32)
     private CampaignStatus status = CampaignStatus.QUEUED;
 
+    @Column(name = "error_detail", columnDefinition = "TEXT")
+    private String errorDetail;
+
     @Column(name = "started_at")
     private Instant startedAt;
 

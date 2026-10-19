@@ -11,7 +11,11 @@ import com.pg.seo.domain.GmailAccount;
 import com.pg.seo.domain.NotFoundException;
 import com.pg.seo.domain.SmtpAccount;
 import com.pg.seo.domain.TemplateStatus;
+import com.pg.seo.mail.GmailMailSender;
 import com.pg.seo.mail.QuotaService;
+import com.pg.seo.mail.SendRequest;
+import com.pg.seo.mail.SendResult;
+import com.pg.seo.mail.SmtpMailSender;
 import com.pg.seo.model.CampaignDto;
 import com.pg.seo.model.CampaignRequest;
 import com.pg.seo.model.ClientDto;
@@ -27,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +53,8 @@ public class CampaignService {
 
     private final CampaignRepository campaigns;
     private final DeliveryRepository deliveryRepository;
+    private final SmtpMailSender smtpSender;
+    private final GmailMailSender gmailSender;
     private final EmailTemplateRepository templates;
     private final SmtpAccountRepository smtpAccounts;
     private final GmailAccountRepository gmailAccounts;
@@ -61,7 +68,9 @@ public class CampaignService {
             SmtpAccountRepository smtpAccounts,
             GmailAccountRepository gmailAccounts,
             ClientService clients,
-            QuotaService quota) {
+            QuotaService quota,
+            SmtpMailSender smtpSender,
+            GmailMailSender gmailSender) {
         this.campaigns = campaigns;
         this.deliveryRepository = deliveryRepository;
         this.templates = templates;
@@ -69,6 +78,8 @@ public class CampaignService {
         this.gmailAccounts = gmailAccounts;
         this.clients = clients;
         this.quota = quota;
+        this.smtpSender = smtpSender;
+        this.gmailSender = gmailSender;
     }
 
     @Transactional
@@ -120,6 +131,149 @@ public class CampaignService {
             deliveryRepository.saveAll(batch);
         }
         return toDto(campaign, fromEmail);
+    }
+
+    /**
+     * Claims the campaigns that are waiting to be sent.
+     *
+     * <p>The claim is a conditional update, so two dispatchers racing for the same campaign
+     * produce exactly one winner. The loser does not send the mail a second time.
+     *
+     * @param limit how many campaigns to claim at most
+     * @return the ids of the campaigns this caller won
+     */
+    @Transactional
+    public List<Long> claimQueued(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        List<Campaign> queued = campaigns.findByStatusOrderByCreatedAtAsc(
+                CampaignStatus.QUEUED, PageRequest.of(0, limit));
+        List<Long> claimed = new ArrayList<>(queued.size());
+        for (Campaign campaign : queued) {
+            if (campaigns.claim(campaign.getId(), CampaignStatus.QUEUED, CampaignStatus.RUNNING, Instant.now()) == 1) {
+                claimed.add(campaign.getId());
+            }
+        }
+        return claimed;
+    }
+
+    /**
+     * Sends the queued recipients of one campaign.
+     *
+     * <p>The method is deliberately not transactional: it holds a network call per
+     * recipient, and a transaction must not stay open across one. Every write is a
+     * repository call, which is transactional on its own.
+     *
+     * <p>A recipient that fails does not fail the campaign. The failure is recorded on the
+     * delivery row and the campaign ends as partial or failed.
+     *
+     * @param campaignId the campaign to send
+     */
+    public void dispatch(Long campaignId) {
+        Campaign campaign = campaigns.findById(campaignId).orElse(null);
+        if (campaign == null) {
+            return;
+        }
+        EmailTemplate template = campaign.getTemplate();
+        if (template == null) {
+            closeCampaign(campaign, CampaignStatus.FAILED, "the campaign has no template");
+            return;
+        }
+        String fromEmail;
+        try {
+            fromEmail = requireAccount(campaign.getOwnerUserId(), campaign.getFromAccountKind(), campaign.getFromAccountId());
+        } catch (RuntimeException e) {
+            closeCampaign(campaign, CampaignStatus.FAILED, "the sending account is no longer available");
+            return;
+        }
+
+        List<Delivery> pending = deliveryRepository.findByCampaignIdAndStatus(campaignId, DeliveryStatus.QUEUED);
+        int success = 0;
+        int failure = 0;
+        for (Delivery delivery : pending) {
+            try {
+                SendResult result = sendOne(campaign, template, fromEmail, delivery);
+                if (result.success()) {
+                    delivery.setStatus(DeliveryStatus.SENT);
+                    delivery.setProviderMessageId(result.providerMessageId());
+                    delivery.setSentAt(Instant.now());
+                    delivery.setErrorDetail(null);
+                    success++;
+                } else {
+                    delivery.setStatus(DeliveryStatus.FAILED);
+                    delivery.setErrorDetail(result.errorMessage());
+                    failure++;
+                }
+            } catch (RuntimeException e) {
+                // The message of a mail failure can carry the name of the account, so only
+                // the type of the failure is recorded.
+                delivery.setStatus(DeliveryStatus.FAILED);
+                delivery.setErrorDetail("the send failed (" + e.getClass().getSimpleName() + ")");
+                failure++;
+            }
+            delivery.setUpdatedAt(Instant.now());
+            deliveryRepository.save(delivery);
+        }
+
+        campaign.setSuccessCount(success);
+        campaign.setFailureCount(failure);
+        campaign.setFinishedAt(Instant.now());
+        campaign.setUpdatedAt(Instant.now());
+        if (failure == 0) {
+            campaign.setStatus(CampaignStatus.SUCCESS);
+        } else if (success > 0) {
+            campaign.setStatus(CampaignStatus.PARTIAL);
+        } else {
+            campaign.setStatus(CampaignStatus.FAILED);
+        }
+        campaigns.save(campaign);
+    }
+
+    /**
+     * Sends one recipient through the adapter that matches the sending account.
+     */
+    private SendResult sendOne(Campaign campaign, EmailTemplate template, String fromEmail, Delivery delivery) {
+        Map<String, String> variables = new HashMap<>();
+        variables.put("Email", delivery.getRecipientEmail());
+        variables.put("Domain", domainOf(delivery.getRecipientEmail()));
+        String body = template.getContentHtml() == null ? "" : template.getContentHtml();
+
+        SendRequest request = new SendRequest(
+                fromEmail,
+                delivery.getRecipientEmail(),
+                template.getSubject(),
+                body,
+                null,
+                variables,
+                null,
+                campaign.getOwnerUserId(),
+                campaign.getFromAccountId());
+        return campaign.getFromAccountKind() == AccountKind.GMAIL
+                ? gmailSender.send(request)
+                : smtpSender.send(request);
+    }
+
+    /**
+     * The domain part of an address, used for the {@code {{Domain}}} placeholder.
+     */
+    private static String domainOf(String email) {
+        if (email == null) {
+            return "";
+        }
+        int at = email.indexOf('@');
+        return at < 0 ? "" : email.substring(at + 1);
+    }
+
+    /**
+     * Ends a campaign that cannot be sent at all.
+     */
+    private void closeCampaign(Campaign campaign, CampaignStatus status, String detail) {
+        campaign.setStatus(status);
+        campaign.setErrorDetail(detail);
+        campaign.setFinishedAt(Instant.now());
+        campaign.setUpdatedAt(Instant.now());
+        campaigns.save(campaign);
     }
 
     @Transactional(readOnly = true)
