@@ -62,6 +62,9 @@ jobs:
           mkdir -p dist
           cp target/seo-*.jar dist/ 2>/dev/null || true
           rm -f dist/*.jar.original
+          # The build writes the bill of materials into the jar's metadata. It is lifted
+          # out here so it can be published and attested on its own.
+          cp target/classes/META-INF/sbom/application.cdx.json dist/bom.json
           cd dist
           sha256sum ./*.jar > SHA256SUMS
           cat SHA256SUMS
@@ -77,7 +80,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bill-of-materials
-          path: target/bom.json
+          path: dist/bom.json
           retention-days: 30
           if-no-files-found: error
 
@@ -103,6 +106,7 @@ jobs:
         run: |
           test -f target/bom.json
           head -c 400 target/bom.json
+          echo
       - name: Attest the bill of materials
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
@@ -171,6 +175,7 @@ jobs:
           files: |
             dist/*.jar
             dist/SHA256SUMS
+            dist/bom.json
           body: |
             ## ${{ needs.build.outputs.version }}
 
