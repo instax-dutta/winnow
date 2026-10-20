@@ -113,7 +113,6 @@ jobs:
         with:
           subject-path: target/seo-*.jar
           sbom-path: target/bom.json
-          push-to-registry: true
 
   image:
     name: Container image
