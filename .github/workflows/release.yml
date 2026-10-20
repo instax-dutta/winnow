@@ -73,6 +73,13 @@ jobs:
           path: dist/
           retention-days: 30
           if-no-files-found: error
+      - name: Upload the bill of materials
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bill-of-materials
+          path: target/bom.json
+          retention-days: 30
+          if-no-files-found: error
 
   sbom:
     name: Software bill of materials
@@ -84,21 +91,23 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-      - name: Build the dependency list
+          name: bill-of-materials
+          path: target
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-artifacts
+          path: target
+      - name: Check the bill of materials
         run: |
-          ./mvnw -B -Dmaven.repo.local=${{ runner.temp }}/.m2 dependency:list \
-            -DoutputFile=target/dependencies.txt -DincludeScope=runtime
-          cat target/dependencies.txt
-      - name: Write the SBOM
+          test -f target/bom.json
+          head -c 400 target/bom.json
+      - name: Attest the bill of materials
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
-          subject-path: target/dependencies.txt
-          sbom-path: target/dependencies.txt
+          subject-path: target/seo-*.jar
+          sbom-path: target/bom.json
 
   image:
     name: Container image
@@ -121,10 +130,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable=${{ inputs.version == '' }}
+            type=raw,value=${{ needs.build.outputs.version }}
+            type=raw,value=latest
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
