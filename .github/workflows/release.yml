@@ -54,18 +54,23 @@ jobs:
         run: ./mvnw -B -Dmaven.repo.local=${{ runner.temp }}/.m2 -DskipTests package
       - name: Check the source for credential-shaped literals
         run: node tools/verify/no-secrets.mjs
-      - name: Write the checksum file
+      - name: Stage the release artifacts
         run: |
-          cd target
-          sha256sum seo-*.jar > seo-*.jar.sha256
-          cat seo-*.jar.sha256
+          # The artifacts are staged in one directory so the upload action has a single
+          # unambiguous path to work with.
+          rm -rf dist
+          mkdir -p dist
+          cp target/seo-*.jar dist/ 2>/dev/null || true
+          rm -f dist/*.jar.original
+          cd dist
+          sha256sum ./*.jar > SHA256SUMS
+          cat SHA256SUMS
+          ls -la
       - name: Upload the release artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-artifacts
-          path: |
-            target/seo-*.jar
-            target/seo-*.jar.sha256
+          path: dist/
           retention-days: 30
           if-no-files-found: error
 
@@ -157,15 +162,15 @@ jobs:
           draft: false
           prerelease: ${{ contains(needs.build.outputs.version, '-') }}
           files: |
-            target/seo-*.jar
-            target/seo-*.jar.sha256
+            dist/*.jar
+            dist/SHA256SUMS
           body: |
             ## ${{ needs.build.outputs.version }}
 
             A self-hosted cold mail and lead generation platform.
 
             - The jar: `seo-*.jar`
-            - The checksum: `seo-*.jar.sha256`
+            - The checksums: `SHA256SUMS`
             - The container image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.version }}`
 
             The build is attested. Verify it with:
