@@ -45,6 +45,14 @@ Bean definitions, typed configuration properties and infrastructure wiring.
 
 ## Work Guidance
 
+- A `@ConfigurationProperties` record has exactly **one** constructor. Spring binds through
+  it, and a second convenience constructor makes the binding ambiguous, so the context fails
+  to start with "No default constructor found". A test that needs a shorter form uses the
+  full one.
+- The credential store is chosen by `seo.secret-store.type`. The file store is the default.
+  A new implementation is a `SecretStore` bean plus a `@ConditionalOnProperty` and a
+  property in `SecretStoreProperties`. Nothing in the service layer changes.
+
 - Adding a property: add it to the properties record with a default and a validation rule,
   add it to `application.yml` with the same default, and reference it through the record
   rather than through `@Value`.

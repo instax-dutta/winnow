@@ -36,7 +36,7 @@ class FileSecretStoreTest {
 
     @BeforeEach
     void createStore() {
-        store = new FileSecretStore(new SecretStoreProperties(storeDirectory));
+        store = new FileSecretStore(new SecretStoreProperties(storeDirectory, "file"));
     }
 
     /** Whether the file system of the test can carry POSIX permissions. */

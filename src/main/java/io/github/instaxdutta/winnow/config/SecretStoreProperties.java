@@ -19,12 +19,4 @@ public record SecretStoreProperties(Path path, String type) {
         type = type == null || type.isBlank() ? "file" : type.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
-    /**
-     * The file store with the default type.
-     *
-     * @param path where the secrets are kept
-     */
-    public SecretStoreProperties(Path path) {
-        this(path, "file");
-    }
 }
