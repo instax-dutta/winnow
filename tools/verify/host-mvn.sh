@@ -31,6 +31,9 @@ if [ -z "$REMOTE" ]; then
 fi
 
 # Mirror the working tree to the build host, then run the goal there.
+# The source tree is removed first, so a package that was renamed or deleted does
+# not survive on the host and get compiled alongside its replacement.
+ssh "$HOST" "rm -rf $REMOTE/src"
 tar czf - --no-xattrs \
     --exclude='.git' \
     --exclude='target' \

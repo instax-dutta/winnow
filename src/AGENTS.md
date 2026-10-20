@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Application source for `winnow`. Holds the Java implementation, the runtime resources
+Application source for winnow. Holds the Java implementation, the runtime resources
 (templates, static assets, Flyway migrations, configuration) and the test suite.
 
 ## Ownership

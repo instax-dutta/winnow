@@ -33,6 +33,9 @@ if [ -z "$REMOTE" ]; then
 fi
 
 echo "==> syncing $ROOT -> $HOST:$REMOTE"
+# The source tree is removed first. A package that was renamed or deleted would
+# otherwise survive on the host and be compiled alongside its replacement.
+ssh "$HOST" "rm -rf $REMOTE/src"
 tar czf - --no-xattrs \
     --exclude='.git' \
     --exclude='target' \

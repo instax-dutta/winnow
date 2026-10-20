@@ -23,7 +23,7 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
  * The persistence wiring.
  *
  * <p>The entity manager factory scans the two real packages that hold entities and
- * repositories. The wildcard {@code com.pg.*} picks up everything under the tree and
+ * repositories. A wildcard such as {@code com.example.*} picks up everything under the tree and
  * breaks as soon as a package is added.
  *
  * <p>Hibernate never creates the schema. Flyway owns it, and Hibernate only validates it in

@@ -74,6 +74,40 @@ Default section order:
 5. Run existing verification when relevant
 6. Report any docs intentionally left unchanged and why
 
+## What this project is for
+
+`winnow` exists so that an agency can find better leads, keep its prospect data private, and
+keep its mailing costs low. Everything below follows from those three things.
+
+- **Better leads.** The system has to produce a contact list an operator can actually work
+  from: addresses that were really published on the domain, deduplicated, exportable, and
+  attached to a named campaign so the reply can be traced back to the source.
+- **Privacy.** A prospect list is a business asset. It lives on the operator's own machine.
+  Credentials are never in the database, a response body, a log line or a committed file. One
+  tenant can never see another's data. Nothing is sent to a third-party service.
+- **Low cost.** The operator already pays for the mailboxes, so the sending costs nothing
+  per lead. There is no per-lead fee anywhere in the design, and no third-party API in the
+  path of a send.
+
+## What this project is not
+
+Stating the boundary is as important as stating the goal, because the most likely way to
+ruin this project is to grow it past what it is.
+
+- **It is not a marketing automation suite.** There is no drip sequence builder, no lead
+  scoring, no CRM, no attribution dashboard, no A/B testing of subject lines.
+- **It is not a deliverability tool.** There is no warm-up, no sending-pace optimisation, no
+  inbox placement prediction. The operator manages the reputation of their own mailboxes.
+- **It is not a data broker.** It finds addresses on the domains the operator names, for the
+  operator's own use. It does not aggregate, sell, license or enrich a list for anyone else.
+- **It does not scrape what a site forbids.** It reads public pages. It does not log in, work
+  around a block, or defeat a rate limit.
+- **It is not a hosted service.** There is no multi-tenant hosting tier, no billing, no usage
+  metering, and no reason to add one. Self-hosting is the product.
+
+A change that serves one of those three goals is welcome. A change that adds a fourth product
+is not, whatever it is called.
+
 ## Project
 
 `winnow` is a self-hosted cold-email and lead-generation platform for agencies. An operator

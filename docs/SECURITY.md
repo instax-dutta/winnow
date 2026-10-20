@@ -1,6 +1,6 @@
 # Security
 
-The threat model and the controls of `winnow`. Every boundary below has a control, and
+The threat model and the controls of winnow. Every boundary below has a control, and
 every control says what breaks without it.
 
 ## The trust boundaries

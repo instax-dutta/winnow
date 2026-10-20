@@ -30,7 +30,7 @@ Bean definitions, typed configuration properties and infrastructure wiring.
 - Every executor method has `@Bean`. A method without it silently never exists.
 - No bean is declared in two places. Two `BCryptPasswordEncoder` beans make the injected
   encoder ambiguous.
-- Package scanning uses real package names, not the wildcard `com.pg.*`, which picks up
+- Package scanning uses real package names, not a wildcard such as `com.example.*`, which picks up
   everything under the tree and breaks as soon as a package is added.
 - The scheduler pool has more than one thread and an error handler, so one failing job
   never stops the others and never stops the schedule.

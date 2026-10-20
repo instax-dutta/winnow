@@ -1,6 +1,6 @@
 # Maintenance
 
-The operating manual. How to build, deploy, migrate and troubleshoot `winnow`.
+The operating manual. How to build, deploy, migrate and troubleshoot winnow.
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@ only its own schema, and keep its password in the environment.
 | `./mvnw clean compile` | Compiles from a clean tree. No tests. |
 | `./mvnw test` | Runs the whole test suite: the unit tests and the `*IT` integration tests. Surefire is configured to include both. |
 | `./mvnw verify` | The gate. `test` plus the packaging, with the integration tests included. |
-| `./mvnw package` | Builds `target/winnow.jar`. Tests run unless `-DskipTests` is passed. |
+| `./mvnw package` | Builds `target/winnow-<version>.jar`. Tests run unless `-DskipTests` is passed. |
 | `./mvnw spring-boot:run` | Runs the application against the configured database. |
 | `./mvnw test -Dtest=ClassName` | Runs one test class. |
 | `./mvnw test -Dtest='TenantIsolationIT'` | The tenant isolation gate (G7). |

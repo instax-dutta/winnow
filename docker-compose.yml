@@ -1,4 +1,4 @@
-# Local development stack for winnow.
+# The local development stack for winnow.
 #
 #   docker compose up -d --build
 #   docker compose logs -f app

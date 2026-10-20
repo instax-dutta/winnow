@@ -1,6 +1,6 @@
 # Architecture
 
-How `winnow` is built. This document records the decisions and the consequence of each
+How winnow is built. This document records the decisions and the consequence of each
 one. A rule that is written here is enforced by the code and by a test, not by convention.
 
 ## The layering rule
@@ -414,7 +414,7 @@ Two stages.
 **Build stage**, `maven:3.9-eclipse-temurin-21`. The `pom.xml` is copied on its own and
 `dependency:go-offline` runs, so the dependency layer is cached separately from the sources
 and a source-only change does not re-download the world. Then `src` is copied and
-`mvn -B -q -DskipTests package` runs. The artifact is `/build/target/winnow.jar`.
+`mvn -B -q -DskipTests package` runs. The artifact is `/build/target/winnow-<version>.jar`.
 
 **Runtime stage**, `eclipse-temurin:21-jre-jammy`. No compiler, no Maven, no shell history.
 A `seo` user and group are created with uid and gid 1001, `/app/data` and `/app/.secrets` are

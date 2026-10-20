@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Java implementation of `winnow`. Every package here has one job, and the package
+The Java implementation of winnow. Every package here has one job, and the package
 boundary is the contract - a class does not reach across it for convenience.
 
 ## Ownership

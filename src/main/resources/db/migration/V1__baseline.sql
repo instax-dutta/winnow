@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- winnow baseline schema.
+-- The winnow baseline schema.
 --
 -- The schema of the application. Every table is utf8mb4_0900_ai_ci. Every tenant-owned
 -- table carries owner_user_id, the four audit columns and a deleted_at soft-delete marker.
