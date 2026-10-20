@@ -59,7 +59,7 @@ The gates are written before the implementation and are not edited to match the 
 - [x] G10: Every link in the public documents resolves to a file that exists.
   CHECK: node tools/verify/readme-links.mjs
   EXPECT: LINK-PASS
-  EVIDENCE: automatic-evidence=v1; definition-sha256=344c9bf117563f3eca5e0bd05ab3efaca0335527ee6b88b8b7419e37019b0ac8; exit=0; EXPECT=matched; output-sha256=8817df87aa8f519979b463842e6c0766a4d186afd78bee0c61ac548c7ac4b84d; output-bytes=2564; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/winnow; path=b93c3fbfaca3/30 entries
+  EVIDENCE: automatic-evidence=v1; definition-sha256=ddf491a0209a174885efd5b328e3294a9b157c20bcb433c566ce876a1987a380; exit=0; EXPECT=matched; output-sha256=b55a2bc337c67afd71de1adc225699b80ee453d3afe80cd5251254ade940e3cc; output-bytes=59; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/winnow; path=b93c3fbfaca3/30 entries
 
 - [x] G11: The architecture, security and maintenance documents exist and are non-empty.
   CHECK: node tools/verify/docs.mjs
