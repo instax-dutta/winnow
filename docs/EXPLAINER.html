@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the cold-mail platform works - and what changed</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --surface-2: #f4f2ee;
+    --ink: #1c1b19;
+    --ink-2: #4a4844;
+    --ink-3: #78756e;
+    --line: #e2ded6;
+    --line-2: #cfc9be;
+    --accent: #2f5d50;
+    --accent-soft: #e6efeb;
+    --bad: #9a3226;
+    --bad-soft: #fbeae7;
+    --good: #2f5d50;
+    --good-soft: #e6efeb;
+    --warn: #8a5a12;
+    --warn-soft: #fbf1de;
+    --info: #2c4f78;
+    --info-soft: #e8eef6;
+    --radius: 10px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181a;
+      --surface: #1d2022;
+      --surface-2: #24282b;
+      --ink: #eceae6;
+      --ink-2: #b8b5af;
+      --ink-3: #8a8781;
+      --line: #2e3336;
+      --line-2: #3d4347;
+      --accent: #7fc0aa;
+      --accent-soft: #1d2c28;
+      --bad: #e5907f;
+      --bad-soft: #2e1e1b;
+      --good: #7fc0aa;
+      --good-soft: #1d2c28;
+      --warn: #dfb268;
+      --warn-soft: #2d2417;
+      --info: #8fb4dd;
+      --info-soft: #1c2630;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 96px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  header.top .wrap { padding: 12px 24px; display: flex; gap: 20px; align-items: baseline; flex-wrap: wrap; }
+  header.top .brand { font-weight: 650; letter-spacing: -0.01em; }
+  header.top nav { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
+  header.top nav a { color: var(--ink-2); text-decoration: none; }
+  header.top nav a:hover { color: var(--accent); }
+
+  .hero { padding: 64px 0 40px; }
+  .hero h1 {
+    font-size: clamp(30px, 5vw, 46px); line-height: 1.12; letter-spacing: -0.025em;
+    margin: 0 0 18px; font-weight: 680; max-width: 18ch;
+  }
+  .hero p.lede { font-size: 19px; color: var(--ink-2); max-width: 66ch; margin: 0 0 14px; }
+  .hero p.lede strong { color: var(--ink); font-weight: 600; }
+  .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+  .meta span {
+    font: 500 12.5px/1 var(--mono); color: var(--ink-2);
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 7px 10px; border-radius: 6px;
+  }
+
+  h2 {
+    font-size: clamp(23px, 3.2vw, 30px); letter-spacing: -0.02em; font-weight: 660;
+    margin: 72px 0 8px; padding-top: 24px; border-top: 1px solid var(--line);
+  }
+  h2 .kicker {
+    display: block; font: 600 12px/1 var(--mono); letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+  }
+  h3 { font-size: 18px; letter-spacing: -0.012em; font-weight: 640; margin: 34px 0 8px; }
+  h4 { font-size: 15px; font-weight: 640; margin: 22px 0 6px; }
+  p { margin: 0 0 14px; max-width: 72ch; }
+  ul, ol { max-width: 72ch; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  code {
+    font: 13.5px/1.5 var(--mono);
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 15px 17px; overflow-x: auto; font: 13px/1.6 var(--mono); margin: 0 0 18px;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px 22px; margin: 0 0 16px;
+  }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .grid.four { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .grid .card { margin: 0; }
+  .card h3 { margin-top: 0; }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: 0.05em;
+    text-transform: uppercase; padding: 5px 7px; border-radius: 5px; margin-bottom: 10px;
+  }
+  .t-bad { background: var(--bad-soft); color: var(--bad); }
+  .t-good { background: var(--good-soft); color: var(--good); }
+  .t-warn { background: var(--warn-soft); color: var(--warn); }
+  .t-info { background: var(--info-soft); color: var(--info); }
+
+  /* the four jobs */
+  .jobs { counter-reset: job; }
+  .job {
+    counter-increment: job;
+    position: relative; padding-left: 46px; margin-bottom: 18px;
+  }
+  .job::before {
+    content: counter(job);
+    position: absolute; left: 0; top: 1px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center; font: 650 14px/1 var(--sans);
+  }
+  .job h3 { margin: 0 0 4px; }
+  .job p { margin-bottom: 0; color: var(--ink-2); }
+
+  /* step list */
+  .steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+  .steps > li {
+    counter-increment: step; position: relative;
+    padding: 0 0 22px 46px; margin: 0;
+    border-left: 2px solid var(--line-2); margin-left: 15px;
+  }
+  .steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute; left: -16px; top: -2px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--line-2); color: var(--ink-2);
+    display: grid; place-items: center; font: 650 13px/1 var(--sans);
+  }
+  .steps h3 { margin: 0 0 5px; }
+  .steps p { margin-bottom: 8px; color: var(--ink-2); }
+  .steps .was { color: var(--ink-3); font-size: 14.5px; }
+
+  /* tables */
+  .scroll { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; background: var(--surface); }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 640; font-size: 13px; letter-spacing: 0.01em; }
+  tr:last-child td { border-bottom: 0; }
+  td code { font-size: 12.5px; }
+
+  .before { color: var(--bad); }
+  .after { color: var(--good); }
+
+  .flow {
+    display: grid; gap: 0; grid-template-columns: 1fr;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin: 0 0 20px;
+  }
+  .flow .node {
+    background: var(--surface-2); border: 1px solid var(--line-2);
+    border-radius: 8px; padding: 12px 15px; font-size: 14.5px;
+  }
+  .flow .node b { display: block; font-weight: 640; margin-bottom: 2px; }
+  .flow .node span { color: var(--ink-2); }
+  .flow .arrow { text-align: center; color: var(--ink-3); padding: 7px 0; font-size: 18px; line-height: 1; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px; margin: 0 0 20px;
+  }
+  .callout.bad { border-left-color: var(--bad); }
+  .callout.good { border-left-color: var(--good); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout a, p a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .callout a:hover, p a:hover { color: var(--ink); }
+  .callout h3 { margin-top: 0; }
+
+  .stat { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0 0 20px; }
+  .stat div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 17px; }
+  .stat b { display: block; font-size: 26px; font-weight: 680; letter-spacing: -0.02em; line-height: 1.2; }
+  .stat span { font-size: 13.5px; color: var(--ink-2); }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { position: relative; padding-left: 26px; margin-bottom: 8px; }
+  .checklist li::before {
+    content: "✓"; position: absolute; left: 0; top: 0;
+    color: var(--good); font-weight: 700;
+  }
+  .crosslist li::before { content: "✕"; color: var(--bad); }
+
+  footer {
+    margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line);
+    color: var(--ink-3); font-size: 14px;
+  }
+  footer a { color: var(--ink-2); }
+  @media (max-width: 620px) {
+    .hero { padding-top: 40px; }
+    header.top nav { font-size: 13px; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand">Cold-mail platform</span>
+    <nav>
+      <a href="#what">What it does</a>
+      <a href="#before">How it used to work</a>
+      <a href="#wrong">What was wrong</a>
+      <a href="#changed">What changed</a>
+      <a href="#removed">Removed</a>
+      <a href="#kept">Kept</a>
+      <a href="#data">The data</a>
+      <a href="#proof">Proof</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <h1>How this thing worked, and what we changed</h1>
+    <p class="lede"><strong>This page explains the whole system in plain language.</strong> First
+      how the old version worked, step by step, as if you were watching someone use it. Then
+      what was actually broken, what we fixed, what we threw away, and what we deliberately
+      left exactly as it was.</p>
+    <p class="lede">No code. No jargon without an explanation. Everything here is checked against
+      the decompiled original, so the old behaviour described here is the real behaviour,
+      not a guess.</p>
+    <div class="meta">
+      <span>old: seo-0.0.1-SNAPSHOT</span>
+      <span>new: seo-0.1.0</span>
+      <span>73 secrets found in the old build</span>
+      <span>199 tests, all passing</span>
+      <span>13 of 13 checks green</span>
+    </div>
+  </section>
+
+  <h2 id="what"><span class="kicker">Part one</span>What the application is for</h2>
+
+  <p>It is a <strong>cold mail and lead generation</strong> tool. In plain terms: it helps a
+    business find people who might buy something, put those people into a list, write emails
+    to them, send a lot of emails at once from several mailboxes, and then watch those
+    mailboxes to see who replied.</p>
+
+  <p>Think of it as four separate jobs that share one database and one login:</p>
+
+  <div class="jobs">
+    <div class="job">
+      <h3>Find people</h3>
+      <p>You upload a spreadsheet of website addresses. The system visits each site, reads
+        the raw HTML, and pulls out any email addresses it can find. Those addresses go
+        into a list you can export.</p>
+    </div>
+    <div class="job">
+      <h3>Organise them</h3>
+      <p>Those addresses, plus any you typed in yourself, become <strong>clients</strong>.
+        You sort clients into named <strong>groups</strong> so you can send to one group and
+        not another.</p>
+    </div>
+    <div class="job">
+      <h3>Send to them</h3>
+      <p>You write an email once, as a rich text document, and get it approved. Then you pick
+        a group, pick which mailbox to send from, and press send. The system sends one
+        message at a time and records how each one went.</p>
+    </div>
+    <div class="job">
+      <h3>Catch the replies</h3>
+      <p>Every day it connects to each of your mailboxes, reads the new mail, and stores it
+        so you can see who answered and what they said.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p><strong>One important thing to keep in mind.</strong> Several different people or
+      companies used this system, each with their own account. Everything in the database
+      belongs to one of them. Keeping them apart is the single most important job in the
+      whole application, and it is exactly where the old version failed. We come back to
+      this in <a href="#wrong">Part three</a>.</p>
+  </div>
+
+  <h2 id="before"><span class="kicker">Part two</span>How the old version used to work</h2>
+
+  <p>Here is the old system as it actually behaved, following a normal day.</p>
+
+  <div class="flow">
+    <div class="node"><b>1. You try to log in</b><span>Before it even checks your password,
+      the app reads the network card's hardware address of the computer and compares it to
+      one hard-coded in a settings file. Then it decodes a "licence" token and checks its
+      expiry date.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>2. You build a client list</b><span>Upload an Excel file of names
+      and addresses, or add a group of clients by hand. The old version read the name and
+      the website from the <em>same</em> spreadsheet column, and it read the address from
+      the next one.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>3. You write a template</b><span>A rich text email. A second person
+      approves it. Until then it cannot be used.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>4. You register your mailboxes</b><span>For normal sending: an
+      address, a mail server, a port, and the app password. For Google: an OAuth client id,
+      a client secret, a refresh token and an access token. All four were typed into the
+      database as plain text.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>5. You press send</b><span>The system looks up the recipients, checks
+      a limit of 50,000 emails for the month, then loops through them one at a time. For each
+      recipient it builds a mail, sends it, and writes a row saying "sent" or "failed".</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>6. Separately, you look for leads</b><span>Upload a spreadsheet of
+      domains. The system fires off a background task for every row at once, visits each
+      site, and regex-matches the page for anything that looks like an email address.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>7. Separately, every day at 11am</b><span>It connects to each
+      mailbox over IMAP and tries to copy new mail into a table. It also checked, every 60
+      seconds, for scheduled Gmail drafts to send.</span></div>
+  </div>
+
+  <h3>The problems with that flow, in plain words</h3>
+
+  <ol class="steps">
+    <li>
+      <h3>Logging in was gated on the computer, not the password</h3>
+      <p>Your account only worked on the one machine whose hardware address matched a value
+        in the settings file. Move to a new laptop and you are locked out. The licence token
+        was checked by <em>decoding</em> it and reading the expiry date, without ever
+        checking the signature that proves who issued it. Anyone who could edit the settings
+        file could mint their own licence.</p>
+      <p class="was">Then, in September 2025, the licence token expired. From that day on
+        the old application could not log anybody in, on any machine, anywhere. The error
+        message said "Invalid username or password", so there was no way to tell what had
+        actually gone wrong.</p>
+    </li>
+    <li>
+      <h3>Your own passwords were stored in plain text, and handed back to the browser</h3>
+      <p>Forty-one mail server passwords, and the OAuth secrets for two Google accounts,
+        sat in the database as readable text. Worse, some screens sent those passwords
+        straight back to the browser as part of their normal response. Any logged-in user
+        could read another user's mail password by guessing a number.</p>
+      <p class="was">The database also had "show SQL" switched on, which means every
+        insert was printed to the server console. The mail passwords were being written
+        into the log files.</p>
+    </li>
+    <li>
+      <h3>One tenant could read another tenant's data</h3>
+      <p>The system kept track of who was logged in by putting a number in the session. That
+      number was passed into most of the code, but eleven places ignored it. So one account
+      could read another account's templates, another account's mailbox inbox, and every
+      other account's scraped email addresses. It could also delete another account's
+      client groups, and approve another account's templates.</p>
+    </li>
+    <li>
+      <h3>Some delete buttons were ordinary web links</h3>
+      <p>Six actions that changed data were ordinary "get this page" requests. Browsers
+        only send protection tokens on requests that change things, so those six actions had
+        none. That means a web page you visited could quietly delete a client group just by
+        loading an image from this system.</p>
+    </li>
+    <li>
+      <h3>The "daily" limit was really a monthly one</h3>
+      <p>The code added up everything sent from the first day of the month to the last day
+      of the month, and refused to send past 50,000. The error message said "Daily Limit
+      Reached". There was no daily limit at all, and nothing stopped a single day from
+        sending 50,000 emails.</p>
+    </li>
+    <li>
+      <h3>The inbox reader never actually found anything</h3>
+      <p>It asked the mail server for "messages received before now and after now". The only
+      messages that match are ones received at exactly that instant, so in practice it
+        fetched nothing, every day, forever.</p>
+    </li>
+    <li>
+      <h3>The lead finder had no brakes</h3>
+      <p>One background task was created for every row of your spreadsheet, all at once, into
+        a queue with no limit. A large file would exhaust memory. Each task was given a
+        six-hour deadline, and the thread that kicked it all off then sat there waiting for
+        every single one to finish. The list of already-seen addresses was kept in memory
+        for the life of the process and never cleared, so running the same file twice the
+        second time found absolutely nothing.</p>
+    </li>
+    <li>
+      <h3>A spreadsheet cell could make the server visit any address you liked</h3>
+      <p>The lead finder built a web address by pasting in the contents of a cell. There was
+        no check on what kind of address it was. A cell could point at your own server, or
+        at the internal metadata address that cloud machines use, and the application would
+        fetch it and store the answer.</p>
+    </li>
+    <li>
+      <h3>One slow thing stopped everything else</h3>
+      <p>The background job runner had exactly one thread. The daily inbox job and the
+        every-minute send job shared it. If the inbox job hung on a mail server that never
+        answered, the send job simply did not run that day. The mail connections had no
+        timeout at all, so a server that went quiet would block a thread for ever.</p>
+    </li>
+    <li>
+      <h3>Dates were shared, mutable objects</h3>
+      <p>Several parts of the code held a date formatter as a field on a singleton object.
+      That is not safe to use from two threads at once, and the application used two
+      threads. Under load it produced date strings with the wrong month, or with the day and
+      month swapped.</p>
+    </li>
+    <li>
+      <h3>Some parts of the code were never used</h3>
+      <p>There was a whole class for logging someone in automatically with nobody calling
+        it. A logout controller that was an empty file. Two beans that were declared but
+        missing the annotation that makes them exist, so the objects they described were
+        never created and the code silently used something else. A second, unused copy of
+        the whole lead-finding implementation.</p>
+      <p class="was">One of the dead methods would have given every new user the first role
+        in the table, which is the administrator role. It was never called, so nothing
+        happened. It was one line away from being a problem.</p>
+    </li>
+  </ol>
+
+  <h2 id="wrong"><span class="kicker">Part three</span>The four themes</h2>
+
+  <p>Everything above falls into one of four themes. The rebuild fixes all four, and the
+    fixes are enforced by the automated checks rather than by good intentions.</p>
+
+  <div class="grid four">
+    <div class="card">
+      <span class="tag t-bad">Theme 1</span>
+      <h3>It could not keep tenants apart</h3>
+      <p>The tenant was a number in the session, and eleven places forgot to use it. In the
+        rebuild the tenant is the signed-in user, it is passed explicitly into every single
+        service method, and every repository query filters on it again. A dedicated test
+        file with 75 checks proves that one tenant cannot read or change another tenant's
+        data, for every repository method and every mutating operation.</p>
+    </div>
+    <div class="card">
+      <span class="tag t-bad">Theme 2</span>
+      <h3>It leaked its own secrets</h3>
+      <p>Credentials were stored in plain text in the database and returned to the browser.
+        In the rebuild a credential is never stored in the database at all. The row holds a
+        reference, the secret lives in a separate protected store, and the mail code fetches
+        it at the moment it needs it and throws it away. No response body, no log line and
+        no file in the repository contains a secret. A check scans every file in the project
+        and fails the build if one appears.</p>
+    </div>
+    <div class="card">
+      <span class="tag t-bad">Theme 3</span>
+      <h3>It was locked to one computer</h3>
+      <p>The licence and hardware-address checks are gone entirely, because the project is
+        going to be open source. There is no machine fingerprint, no activation and no
+        licence token. What stays is ordinary login and ordinary roles, which are about
+        who you are, not about what you bought. A check fails the build if a licence check
+        ever reappears.</p>
+    </div>
+    <div class="card">
+      <span class="tag t-bad">Theme 4</span>
+      <h3>It broke in ordinary, boring ways</h3>
+      <p>A monthly limit called a daily limit. Pagination that always said 100 rows. An inbox
+        reader that matched no messages. One background thread for everything. No socket
+        timeouts. A date formatter shared between threads. These are the defects that make
+        a system feel unreliable even when nobody is attacking it, and they are the bulk of
+        what the rebuild changes.</p>
+    </div>
+  </div>
+
+  <h2 id="changed"><span class="kicker">Part four</span>What we changed, side by side</h2>
+
+  <p>The same table as the engineering document, in plainer words. The full list, with the
+    exact code references, is in
+    <code>docs/MIGRATION-FROM-0.0.1.md</code>.</p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th style="width:32%">Area</th><th style="width:34%">The old version</th><th style="width:34%">The new version</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Signing in</td>
+          <td class="before">Refused to work on any computer but one, and stopped working on
+            every computer when the licence expired.</td>
+          <td class="after">An ordinary account with an ordinary password. Works wherever
+            you sign in.</td>
+        </tr>
+        <tr>
+          <td>Where the tenant comes from</td>
+          <td class="before">A number read out of the session, ignored in eleven places.</td>
+          <td class="after">The signed-in user, passed explicitly into every service method
+            and filtered again in the database query.</td>
+        </tr>
+        <tr>
+          <td>Mail passwords</td>
+          <td class="before">Plain text in the database, printed in the log, and sent back
+            to the browser.</td>
+          <td class="after">Not in the database at all. A reference points at a protected
+            store; the value is fetched for the one send and dropped.</td>
+        </tr>
+        <tr>
+          <td>Google tokens</td>
+          <td class="before">Client secret, refresh token and access token all in plain
+            text, all returned by one endpoint.</td>
+          <td class="after">The refresh token lives in the protected store. The access token
+            is never written down at all.</td>
+        </tr>
+        <tr>
+          <td>Delete and approve actions</td>
+          <td class="before">Six of them were plain page links, with no protection token.</td>
+          <td class="after">All of them are proper change requests, so they all carry a
+            protection token. No page load can delete anything.</td>
+        </tr>
+        <tr>
+          <td>Finding leads</td>
+          <td class="before">One unbounded task per spreadsheet row, a six-hour deadline,
+            and a seen-list that was never cleared.</td>
+          <td class="after">Eight workers, a queue of 500, a deadline per domain, a cap on
+            domains per run, and a seen-list that belongs to the run.</td>
+        </tr>
+        <tr>
+          <td>Which sites may be visited</td>
+          <td class="before">Whatever a spreadsheet cell said, including your own internal
+            network.</td>
+          <td class="after">Every address is checked first. Private and internal ranges are
+            always refused, redirects are re-checked, and every visit has a time limit and a
+            size limit.</td>
+        </tr>
+        <tr>
+          <td>The send limit</td>
+          <td class="before">50,000 a month, described as a daily limit.</td>
+          <td class="after">Separate daily, hourly and monthly limits, per account and per
+            sending mailbox, measured from our own records.</td>
+        </tr>
+        <tr>
+          <td>The email subject</td>
+          <td class="before">The template's name, typed into a mail header unfiltered.</td>
+          <td class="after">A separate field, with its own length limit and validation.</td>
+        </tr>
+        <tr>
+          <td>Reading replies</td>
+          <td class="before">Searched for messages received at exactly one instant, so it
+            found nothing.</td>
+          <td class="after">Reads everything since the last check, and recognises a message
+            it has already stored, so nothing is duplicated.</td>
+        </tr>
+        <tr>
+          <td>Background jobs</td>
+          <td class="before">One thread for everything, so one slow job blocked the rest.</td>
+          <td class="after">A pool of threads. A job that fails is logged and the others
+            keep going. A job that runs twice does the work once.</td>
+        </tr>
+        <tr>
+          <td>Mail connection timeouts</td>
+          <td class="before">None. A quiet server blocked a thread for ever.</td>
+          <td class="after">Connect, read and write timeouts, all configurable.</td>
+        </tr>
+        <tr>
+          <td>Dates</td>
+          <td class="before">A formatter shared between threads, which corrupts dates under
+            load.</td>
+          <td class="after">The modern date library throughout. Every timestamp is stored
+            with microsecond precision.</td>
+        </tr>
+        <tr>
+          <td>One message, many recipients</td>
+          <td class="before">One mail object reused for every recipient, so a failed send
+            left the next one in a strange state.</td>
+          <td class="after">A fresh mail object per recipient.</td>
+        </tr>
+        <tr>
+          <td>The database</td>
+          <td class="before">Hand-made, with no record of changes, no foreign keys, almost
+            no indexes, and no unique constraints anywhere.</td>
+          <td class="after">Created and versioned by a migration tool. Real foreign keys,
+            real indexes, unique constraints, and every table in one character set.</td>
+        </tr>
+        <tr>
+          <td>Where files are written</td>
+          <td class="before">A hard-coded Windows path, joined to a user-supplied date
+            without a separator.</td>
+          <td class="after">A configured directory. No path is ever built from something a
+            user typed.</td>
+        </tr>
+        <tr>
+          <td>Installing it</td>
+          <td class="before">A single large file, meant for one Windows machine, with the
+            browser engine shipped inside it.</td>
+          <td class="after">A container image and a compose file. One command starts the
+            application and its database.</td>
+        </tr>
+        <tr>
+          <td>The password list page</td>
+          <td class="before">Showed every mail server password in clear text on screen.</td>
+          <td class="after">Shows only whether a password is set, never the password.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="removed"><span class="kicker">Part five</span>What we removed</h2>
+
+  <p>These are gone on purpose. Each one was either a security problem, a licence gate, or
+    code that never ran.</p>
+
+  <div class="card">
+    <h3>The licence system</h3>
+    <ul class="checklist crosslist">
+      <li>The licence token, and the code that decoded it without checking its signature</li>
+      <li>The check that the computer's hardware address matches a value in the settings file</li>
+      <li>The printing of that hardware address to the console on every sign-in attempt</li>
+      <li>Both values from the settings file, so a fresh install has nothing to activate</li>
+    </ul>
+    <p style="margin-top:14px">What replaced it: nothing. The project is open source, so
+      there is no licence to check. Sign-in and roles stay, because those are about who you
+      are rather than what you bought.</p>
+  </div>
+
+  <div class="card">
+    <h3>Code that never ran</h3>
+    <ul class="checklist crosslist">
+      <li>A class for signing users in automatically, with no caller</li>
+      <li>A logout controller that was an empty file</li>
+      <li>A logout handler that was registered but never attached, and did nothing anyway</li>
+      <li>Two configuration methods missing the annotation that makes them exist, so the
+        objects they described were never created</li>
+      <li>A second, unused copy of the whole lead-finding implementation</li>
+      <li>A method that would have given every new user the administrator role</li>
+      <li>A service that was wired in two places and used in neither</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Ways to reach data that should not have been reachable</h3>
+    <ul class="checklist crosslist">
+      <li>Two endpoints that returned every row in the table, with no owner filter</li>
+      <li>An export that ignored whose data it was exporting, and produced every tenant's
+        scraped addresses in one file</li>
+      <li>A download whose filename was built from the dates in the request, which is a
+        path-building primitive even though it could not be exploited in practice</li>
+      <li>An endpoint that posted your uploaded spreadsheet to a placeholder web address
+        that was never filled in</li>
+      <li>Two paths that were allowed through the security rules but had no code behind
+        them at all</li>
+      <li>A second route to the same page, spelled with a path that did not start with a
+        slash</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Things that made the application fragile</h3>
+    <ul class="checklist crosslist">
+      <li>A six-hour deadline on a single background task</li>
+      <li>An unbounded queue for the lead finder</li>
+      <li>A shared date formatter across threads</li>
+      <li>A scheduler with exactly one thread</li>
+      <li>Mail connections with no timeout</li>
+      <li>A "show every SQL statement" setting that printed passwords into the logs</li>
+      <li>A setting that told the application to ignore errors while setting up the
+        database</li>
+    </ul>
+  </div>
+
+  <h2 id="kept"><span class="kicker">Part six</span>What we deliberately kept</h2>
+
+  <p>This is a rebuild, not a different product. The following are unchanged on purpose,
+    because they worked and they are what the business is built on:</p>
+
+  <ul class="checklist">
+    <li><strong>The four jobs.</strong> Find leads, organise clients, send email, catch
+      replies. Same order, same idea.</li>
+    <li><strong>Client groups.</strong> Named groups of contacts, so you can send to one and
+      not another.</li>
+    <li><strong>The template approval flow.</strong> A template is written, submitted, and
+      approved before it can be used. The new version adds one thing the old one lacked:
+      editing an approved template sends it back for approval, instead of quietly
+      continuing to use it.</li>
+    <li><strong>Both sending routes.</strong> Normal SMTP mailboxes, and Google accounts
+      through OAuth. The Google route still works from a saved draft, with the
+      <code>{{Domain}}</code> placeholder filled in per recipient.</li>
+    <li><strong>The scheduled send queue.</strong> A message scheduled for a future time,
+      sent by a background job.</li>
+    <li><strong>The lead export.</strong> Download the found addresses as a spreadsheet.</li>
+    <li><strong>The Amazon scraper.</strong> The sidecar that drives a browser to read
+      Amazon search results. Its contract was repaired, and it is now reached over loopback
+      with a timeout instead of being open to anything on the network.</li>
+    <li><strong>Four roles.</strong> Administrator, manager, operator, viewer. The old
+      system had the same idea with different names, and the old names did not line up with
+      what the code actually checked, so the home page was forbidden to everybody. That is
+      fixed.</li>
+    <li><strong>The look and feel.</strong> The same screens, the same navigation, the same
+      Bootstrap-flavoured admin layout, rebuilt with cleaner markup and a real design
+      system.</li>
+  </ul>
+
+  <h2 id="data"><span class="kicker">Part seven</span>What happened to the data</h2>
+
+  <p>The old database had sixteen tables. Fourteen of them mattered. They were rebuilt with
+    better names, proper keys and real types. Nothing was thrown away for being messy, only
+    for being broken.</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:26%">Old table</th><th style="width:26%">New table</th><th>What changed</th></tr></thead>
+      <tbody>
+        <tr><td><code>login</code></td><td><code>app_user</code></td><td>Real timestamps, a unique username, a failed-attempt counter and a lock-out time.</td></tr>
+        <tr><td><code>client_group</code></td><td><code>client_group</code></td><td>Unique group codes, typed timestamps.</td></tr>
+        <tr><td><code>client_master</code></td><td><code>client</code></td><td>Points at the group's real key instead of its name, with the missing index added.</td></tr>
+        <tr><td><code>email_template</code></td><td><code>email_template</code></td><td>The body fits. It was capped at 255 characters, which truncated a full email. Now it holds the whole document, plus an approver, a time and a version number.</td></tr>
+        <tr><td><code>email_master</code></td><td><code>smtp_account</code></td><td>The password column is gone, replaced by a reference to the secret store.</td></tr>
+        <tr><td><code>gmail_master</code></td><td><code>gmail_account</code></td><td>The three secret columns are gone, replaced by two references.</td></tr>
+        <tr><td><code>email_send_job</code></td><td><code>campaign</code></td><td>Real start and finish times, a failure count, and a status from a fixed list.</td></tr>
+        <tr><td><code>email_send_status</code></td><td><code>delivery</code></td><td>Points at the campaign it belongs to, and records the message id and the reason for a failure.</td></tr>
+        <tr><td><code>email_queue</code></td><td><code>outbox</code></td><td>Audit columns, a roomy error message, an attempt count, and a way to claim a row so it is never sent twice.</td></tr>
+        <tr><td><code>email_extractor</code></td><td><code>extraction_run</code></td><td>Real times, a domain count that actually counts domains, and a status that always finishes.</td></tr>
+        <tr><td><code>email_extractor_data</code></td><td><code>extraction_result</code></td><td>Points at its run, and a uniqueness rule so the same address is never stored twice in one run.</td></tr>
+        <tr><td><code>email_inbox</code></td><td><code>inbox_message</code></td><td>Belongs to a mailbox, holds a whole message body, and cannot store the same message twice.</td></tr>
+        <tr><td><code>role_security</code></td><td><code>app_role</code></td><td>Unique role names and typed timestamps.</td></tr>
+        <tr><td><code>login_role_security</code></td><td><code>app_user_role</code></td><td>A proper key, an index, two real foreign keys, and a timestamp.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout bad">
+    <h3>What cannot be moved across automatically</h3>
+    <p>Two things have to be typed in again by hand, and there is no way around it:</p>
+    <ul>
+      <li><strong>The 41 mail server passwords.</strong> They were stored as plain text, so
+        they could in principle be copied over. But they should not be, because they were
+        sitting in a public repository. They should be revoked and replaced, and the
+        original should be assumed to be compromised.</li>
+      <li><strong>The two Google accounts' OAuth tokens.</strong> Same reasoning, and worse:
+        a refresh token grants permanent access to a mailbox. Revoke and re-authorise.</li>
+    </ul>
+    <p>Everything else can be moved. The order of operations is written out step by step in
+      <code>docs/MIGRATION-FROM-0.0.1.md</code>, and it is about thirteen steps.</p>
+  </div>
+
+  <h2 id="proof"><span class="kicker">Part eight</span>How we know it works</h2>
+
+  <p>Claims are worth little without a way to check them, so the rebuild is built around
+    checks that run on every change and fail the build when something is wrong.</p>
+
+  <div class="stat">
+    <div><b>13 / 13</b><span>checks green</span></div>
+    <div><b>199</b><span>tests, none failing</span></div>
+    <div><b>75</b><span>tenant isolation checks</span></div>
+    <div><b>49</b><span>request protection checks</span></div>
+    <div><b>16</b><span>foreign keys in the schema</span></div>
+    <div><b>219</b><span>files scanned for secrets</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>It actually starts</h3>
+      <p>The application is built into a container, started against an empty database, and
+        signed into. A wrong password is tried too, and is refused. The check fails if the
+        application does not come up or if the login page is missing anything.</p>
+    </div>
+    <div class="card">
+      <h3>The schema is right</h3>
+      <p>The database is thrown away, the migrations run from nothing, and the application
+        starts against the result. Then every table, column, foreign key and index is
+        checked, along with the character set and the rule that no column may hold a
+        credential.</p>
+    </div>
+    <div class="card">
+      <h3>A fresh copy builds</h3>
+      <p>The project is copied to a clean directory with an empty download cache and built
+        from scratch. If it only ever worked because of something left lying around, this
+        is what catches it.</p>
+    </div>
+    <div class="card">
+      <h3>Nothing sensitive is committed</h3>
+      <p>Every file in the project is scanned for anything shaped like a credential. The
+        rules that came from the root instructions file, including the rule that no licence
+        check may exist, are checked by a program rather than by a reader.</p>
+    </div>
+  </div>
+
+  <h3>Running it</h3>
+  <pre><code>cd seo-0.1.0
+cp .env.development.example .env.development   # fill in the local database password
+docker compose up -d --build
+# open http://127.0.0.1:8083
+# sign in as "admin" with the password from BOOTSTRAP_PASSWORD</code></pre>
+
+  <h3>Where to read more</h3>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:38%">File</th><th>What it covers</th></tr></thead>
+      <tbody>
+        <tr><td><code>README.md</code></td><td>Getting started, configuration, the project layout.</td></tr>
+        <tr><td><code>docs/ARCHITECTURE.md</code></td><td>How the system is put together, the data model, the send and extraction flows.</td></tr>
+        <tr><td><code>docs/MIGRATION-FROM-0.0.1.md</code></td><td>Every old table and endpoint mapped to its replacement, with the code references.</td></tr>
+        <tr><td><code>docs/SECURITY.md</code></td><td>The threat model, the controls, and what is still a limitation.</td></tr>
+        <tr><td><code>docs/MAINTENANCE.md</code></td><td>How to build, deploy, migrate and troubleshoot it.</td></tr>
+        <tr><td><code>docs/SECRET-HARVEST.md</code></td><td>Every credential the old build exposed, and the order to rotate them in.</td></tr>
+        <tr><td><code>docs/reverse-engineering/</code></td><td>The full decompiled analysis of the old application. The evidence behind everything on this page.</td></tr>
+        <tr><td><code>AGENTS.md</code></td><td>The rules any future developer or agent has to follow, and where to look for each part of the project.</td></tr>
+        <tr><td><code>GATES.md</code></td><td>The checks, and the recorded proof that each one passed.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>Written from the decompiled original and the rebuild's own source. Every old behaviour
+      described here cites the file and line it came from, in
+      <code>docs/reverse-engineering/</code>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

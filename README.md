@@ -10,6 +10,12 @@ The original was a 93 MB fat JAR. Its behaviour is documented, defect by defect,
 alters what the original did has to be justified against it, so a fix is never an accidental
 regression.
 
+## Start here
+
+**New to this project?** Read [`docs/EXPLAINER.html`](docs/EXPLAINER.html) - a plain-language
+walkthrough of what the original application did, what was wrong with it, and what changed.
+It opens straight from disk, no server needed.
+
 ## What it does
 
 An operator signs in, loads their own clients and client groups, writes an email template and

@@ -14,11 +14,16 @@ from the original, what its security model is, and what the reverse engineering 
 | `SECURITY.md` | The threat model, the credential handling rules, the fixes applied to the original's holes |
 | `MAINTENANCE.md` | How to build, deploy, migrate and troubleshoot, including the remote build host |
 | `SECRET-HARVEST.md` | What the original leaked, how it was found, and the rotation order |
+| `EXPLAINER.html` | A plain-language walkthrough for a non-engineer: how the original worked, what was wrong, what changed |
 | `reverse-engineering/` | The full decompilation analysis of the original |
 
 ## Local Contracts
 
 - A document records a decision or a procedure, not a status update.
+- `EXPLAINER.html` is the one document written for a reader who does not read code. It is
+  still factual: every old behaviour it describes cites the same evidence the other
+  documents cite. It is a single self-contained file with no external dependency, so it
+  opens from disk with no server and no network.
 - Every claim about the original cites the evidence: a decompiled file and line, a table, or
   a captured response.
 - When the code changes, the matching document changes in the same commit. A document that

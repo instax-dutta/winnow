@@ -42,7 +42,28 @@ const RULES = [
 const ASSIGN =
   /(?:password|passwd|pwd|secret|api[_-]?key|apikey|client[_-]?secret|refresh[_-]?token|access[_-]?token|wordpress\.api\.token)\s*[:=]\s*["']([^"'\s]{8,})["']/gi;
 
-const PLACEHOLDER = /^(?:\$\{[^}]+\}|\$[A-Za-z_][A-Za-z0-9_]*|<[^>]+>|changeme|placeholder|example|redacted|xxx+|\*{3,}|dummy|test-value|your[-_ ].*|null|none)$/i;
+// A value that is not a secret: a placeholder, a variable reference, or the documented
+// default password of a fresh install, which is published in the README on purpose.
+const PLACEHOLDER = new RegExp(
+  "^(?:" +
+    "\\$\\{[^}]+\\}" +        // ${VAR}
+    "|\\$[A-Za-z_][A-Za-z0-9_]*" + // $VAR
+    "|<[^>]+>" +                   // <placeholder>
+    "|change[-_ ]?me[-_ ]?now" +   // the published default of a fresh install
+    "|changeme" +
+    "|placeholder" +
+    "|example" +
+    "|redacted" +
+    "|xxx+" +
+    "|\\*{3,}" +
+    "|dummy" +
+    "|test[-_ ]?value" +
+    "|your[-_ ].*" +
+    "|null" +
+    "|none" +
+    ")$",
+  "i"
+);
 
 const walk = (dir) => {
   const out = [];

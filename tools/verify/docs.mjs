@@ -55,6 +55,18 @@ const REQUIRED = [
     minLines: 30,
     mustMention: ["CRITICAL", "GOCSPX", "rotate"],
   },
+  {
+    path: "docs/EXPLAINER.html",
+    minLines: 200,
+    mustMention: [
+      "How the old version used to work",
+      "The licence system",
+      "tenant isolation",
+      "What we removed",
+      "What we deliberately kept",
+      "docs/MIGRATION-FROM-0.0.1.md",
+    ],
+  },
 ];
 
 const findings = [];
@@ -69,6 +81,19 @@ for (const doc of REQUIRED) {
   const lines = src.split("\n").length;
   if (lines < doc.minLines) {
     findings.push(`${doc.path}: ${lines} lines, expected at least ${doc.minLines}`);
+  }
+  if (doc.path.endsWith(".html")) {
+    // A self-contained page: no external stylesheet, script or font, and no <script>.
+    const external = src.match(/(?:src|href)="https?:\/\//g) || [];
+    if (external.length) findings.push(`${doc.path}: ${external.length} external resource reference(s)`);
+    if (/<script/i.test(src)) findings.push(`${doc.path}: contains a <script> tag`);
+    const opens = (src.match(/<(div|section|table|ul|ol|li|td|tr|th|pre|p|h[1-4])\b/g) || []).length;
+    const closes = (src.match(/<\/(div|section|table|ul|ol|li|td|tr|th|pre|p|h[1-4])>/g) || []).length;
+    if (opens !== closes) findings.push(`${doc.path}: ${opens} open and ${closes} close tags`);
+    const ids = new Set([...src.matchAll(/id="([a-z]+)"/g)].map((m) => m[1]));
+    for (const m of src.matchAll(/href="#([a-z]+)"/g)) {
+      if (!ids.has(m[1])) findings.push(`${doc.path}: a link points at the missing anchor #${m[1]}`);
+    }
   }
   for (const topic of doc.mustMention) {
     if (!src.toLowerCase().includes(topic.toLowerCase())) {
