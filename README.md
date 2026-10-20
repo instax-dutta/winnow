@@ -54,6 +54,29 @@ mail of the registered mailboxes.
 
 ## Quick start
 
+### From a release
+
+Grab the container image, which is the shortest way to run it:
+
+```bash
+docker compose up -d
+```
+
+or take the jar and run it against a MySQL 8 you already have:
+
+```bash
+java -jar seo-*.jar
+```
+
+Every release carries the jar, a `SHA256SUMS` file and a `bom.json` software bill of
+materials, and the build is attested. Verify it before you trust it:
+
+```bash
+gh attestation verify seo-*.jar --repo instax-dutta/winnow
+```
+
+### From source
+
 Requirements: Docker with the Compose plugin, and roughly 1 GB of free memory.
 
 ```bash
