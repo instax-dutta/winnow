@@ -1,7 +1,11 @@
 name: CodeQL
 
-# Static analysis of the application source. It runs on every push and on every pull
-# request, and the findings land in the repository's security tab.
+# Static analysis of the whole repository: the application, the sidecar and the workflows
+# that build them. The findings land in the repository's security tab.
+#
+# Each language is analysed on its own runner. The extractors are memory hungry, and
+# running three of them in one job is what made an early run fall over while it
+# finalised the database.
 
 on:
   push:
@@ -22,20 +26,29 @@ concurrency:
 
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: read
       security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [java, javascript, actions]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Initialise CodeQL
         uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
-          languages: java
+          languages: ${{ matrix.language }}
           queries: security-and-quality
-      - name: Analyze
+          # The java extractor does not need the project to be built. The analysis works on
+          # the source, so the workflow does not have to build the application first.
+          build-mode: none
+      - name: Perform the analysis
         uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
-          category: "/language:java"
+          category: "/language:${{ matrix.language }}"
