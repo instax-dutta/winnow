@@ -1,9 +1,23 @@
-# seo-0.1.0
+# winnow
 
-A cold-email and lead-generation platform. `seo-0.1.0` is a clean-room rebuild of
-`seo-0.0.1-SNAPSHOT`, a Spring Boot 3.3.0 application that was decompiled and analysed before
-the rewrite. The rebuild keeps the product surface of the original and fixes every defect the
-analysis found.
+[![CI](https://github.com/instax-dutta/winnow/actions/workflows/ci.yml/badge.svg)](https://github.com/instax-dutta/winnow/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/instax-dutta/winnow/actions/workflows/codeql.yml/badge.svg)](https://github.com/instax-dutta/winnow/actions/workflows/codeql.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Java 21](https://img.shields.io/badge/java-21-orange.svg)](https://openjdk.org/)
+
+**Self-hosted lead generation for agencies. Your data stays on your machine, and your
+mailing costs stay low.**
+
+Winnow is a cold-mail and lead-generation platform. It finds contact addresses on the
+websites you point it at, keeps them in lists you control, sends your own email from your
+own mailboxes, and watches those mailboxes for replies. Nothing is sent to a third-party
+service, so there is no per-lead fee and no third party holding your prospect list.
+
+The name is the job: *to winnow* is to separate the valuable from the chaff.
+
+> This is `seo-0.1.0`, a clean-room rebuild of `seo-0.0.1-SNAPSHOT`, a Spring Boot 3.3.0
+> application that was decompiled and analysed before the rewrite. The rebuild keeps the
+> product surface of the original and fixes every defect the analysis found.
 
 The original was a 93 MB fat JAR. Its behaviour is documented, defect by defect, in
 `docs/reverse-engineering/`. That record is the ground truth for parity: a change that

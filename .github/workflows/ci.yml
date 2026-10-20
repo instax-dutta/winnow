@@ -1,0 +1,122 @@
+name: CI
+
+# The gate ledger in GATES.md is the contract. This workflow runs it.
+# A pull request that does not pass every gate is not ready.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MAVEN_OPTS: "-Dmaven.repo.local=${{ runner.temp }}/.m2 -B"
+
+jobs:
+  verify:
+    name: Build, test and gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: emailsender_v01
+          MYSQL_USER: seo_v01
+          MYSQL_PASSWORD: SeoV01DevPass!x
+          MYSQL_ROOT_PASSWORD: SeoV01Root!x
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pSeoV01Root!x"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+          --health-start-period=30s
+
+    steps:
+      - name: Check out the source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install the MySQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mysql-client
+          mysql --version
+
+      - name: Build and test
+        run: ./mvnw -B -Dmaven.repo.local=${{ runner.temp }}/.m2 verify
+
+      - name: Check that no live credential is in a tracked file
+        run: node tools/redact-live-values.mjs --check
+
+      - name: Check that no credential-shaped literal is in the source
+        run: node tools/verify/no-secrets.mjs
+
+      - name: Check the hard rules
+        run: node tools/verify/code-hygiene.mjs
+
+      - name: Check the documentation tree
+        run: node tools/verify/dox-tree.mjs
+
+      - name: Check the documentation set
+        run: node tools/verify/docs.mjs
+
+      - name: Check the parity with the original
+        run: node tools/verify/parity.mjs
+
+      - name: Check that the secret inventory still reproduces
+        run: |
+          node tools/harvest-secrets.mjs | grep -q "findings:"
+
+      - name: Check the migrations against a clean database
+        env:
+          SEO_LOCAL: "1"
+          SEO_DB_PORT: "3307"
+          SEO_DB_PASSWORD: SeoV01DevPass!x
+          SEO_DB_ROOT_PASSWORD: SeoV01Root!x
+        run: node tools/verify/migrations.mjs
+
+      - name: Check that the application starts and serves
+        env:
+          SEO_LOCAL: "1"
+          SEO_DB_PORT: "3307"
+          SEO_DB_PASSWORD: SeoV01DevPass!x
+          SEO_DB_ROOT_PASSWORD: SeoV01Root!x
+        run: node tools/verify/app-boot.mjs
+
+      - name: Upload the build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: seo-jar
+          path: target/*.jar
+          retention-days: 14
+          if-no-files-found: error
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0

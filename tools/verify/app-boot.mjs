@@ -18,18 +18,31 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const HOST = process.env.SEO_BUILD_HOST || "tejes@pelican";
 const REMOTE = "~/seo-rebuild/app";
+// LOCAL=1 runs everything on this machine. The continuous integration workflow uses it,
+// because a CI runner has no build host to talk to.
+const LOCAL = process.env.SEO_LOCAL === "1" || process.env.SEO_LOCAL === "true";
 // A fresh port every run, so a stale instance from an earlier run can never answer the
 // probes. The port is chosen by the operating system and is released as soon as the
 // application stops.
 const PORT = Number(process.env.SEO_APP_PORT || 20000 + Math.floor(Math.random() * 20000));
+const DB_PORT = process.env.SEO_DB_PORT || "3307";
 const DB_URL =
   process.env.SEO_DB_URL ||
-  "jdbc:mysql://127.0.0.1:3307/emailsender_v01?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8";
+  `jdbc:mysql://127.0.0.1:${DB_PORT}/emailsender_v01?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8`;
 const USER = devEnv("SEO_DB_USERNAME", "seo_v01");
 const PASSWORD = devEnv("SEO_DB_PASSWORD");
 const ADMIN_PASSWORD = process.env.SEO_ADMIN_PASSWORD || "boot-check-password-1";
 
-const sh = (cmd) => execFileSync("ssh", [HOST, cmd], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+/**
+ * Runs a command on the build host, or locally when LOCAL is set.
+ *
+ * @param {string} cmd the shell command
+ * @returns {string} its output
+ */
+const sh = (cmd) =>
+  LOCAL
+    ? execFileSync("/bin/bash", ["-lc", cmd], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 })
+    : execFileSync("ssh", [HOST, cmd], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
 const say = (m) => console.log(`[app-boot] ${m}`);
 
@@ -52,9 +65,9 @@ if (!PASSWORD) {
 
 try {
   // ---------------------------------------------------------------- build
-  say("building the container image on the build host");
+  say(LOCAL ? "building the container image" : "building the container image on the build host");
   sh(
-    `cd ${REMOTE} && docker build -t seo-v01:boot . 2>&1 | tail -5`
+    `cd ${LOCAL ? "." : REMOTE} && docker build -t seo-v01:boot . 2>&1 | tail -5`
   );
   say("image: seo-v01:boot");
 

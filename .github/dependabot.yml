@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # The Maven dependencies.
+  - package-ecosystem: maven
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+    open-pull-requests-limit: 5
+    labels: [dependencies, java]
+    commit-message:
+      prefix: "build(deps)"
+
+  # The GitHub Actions. The workflow pins every action to a commit SHA, so a bump here
+  # is what moves a pin forward. Dependabot is configured to update both together.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+    open-pull-requests-limit: 5
+    labels: [dependencies, ci]
+    commit-message:
+      prefix: "build(ci)"
+
+  # The container base images.
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+    open-pull-requests-limit: 3
+    labels: [dependencies, docker]
+    commit-message:
+      prefix: "build(docker)"

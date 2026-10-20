@@ -14,15 +14,27 @@ import { execFileSync } from "node:child_process";
 import { devEnv } from "./dev-env.mjs";
 
 const HOST = process.env.SEO_BUILD_HOST || "tejes@pelican";
+// LOCAL=1 runs everything on this machine. The continuous integration workflow uses it.
+const LOCAL = process.env.SEO_LOCAL === "1" || process.env.SEO_LOCAL === "true";
 const CONTAINER = "seo-v01-mysql";
 const DB = process.env.SEO_DB_NAME || "emailsender_v01";
+const DB_PORT = process.env.SEO_DB_PORT || "3307";
 const ROOT_PASSWORD = devEnv("SEO_DB_ROOT_PASSWORD");
 const DB_PASSWORD = devEnv("SEO_DB_PASSWORD");
 const DB_USER = devEnv("SEO_DB_USERNAME", "seo_v01");
 const APP = "seo-v01-migrations";
 const PORT = 21500;
 
-const sh = (cmd) => execFileSync("ssh", [HOST, cmd], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+/**
+ * Runs a command on the build host, or locally when LOCAL is set.
+ *
+ * @param {string} cmd the shell command
+ * @returns {string} its output
+ */
+const sh = (cmd) =>
+  LOCAL
+    ? execFileSync("/bin/bash", ["-lc", cmd], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
+    : execFileSync("ssh", [HOST, cmd], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
 const say = (m) => console.log(`[migrations] ${m}`);
 
 const TABLES = [
@@ -58,14 +70,37 @@ const COLUMNS = {
   inbox_message: ["id", "account_id", "provider_message_id", "from_address", "subject", "body_html", "received_at", "is_read"],
 };
 
-const sql = (query) =>
-  sh(
-    `docker exec ${CONTAINER} mysql -uroot -p'${ROOT_PASSWORD}' -N -B -e "${query}" 2>/dev/null`
-  )
-    .trim()
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+/**
+ * Runs a query against the development database.
+ *
+ * The database may be a container on the build host, a container on this machine, or a
+ * plain server such as the one the continuous integration workflow starts. The first
+ * strategy that works is used.
+ *
+ * @param {string} query the SQL
+ * @returns {string[]} the rows, one per line
+ */
+const sql = (query) => {
+  const strategies = [
+    `docker exec ${CONTAINER} mysql -uroot -p'${ROOT_PASSWORD}' -N -B -e "${query}" 2>/dev/null`,
+    `mysql -h127.0.0.1 -P${DB_PORT} -uroot -p'${ROOT_PASSWORD}' -N -B -e "${query}" 2>/dev/null`,
+  ];
+  for (const command of strategies) {
+    try {
+      const out = sh(command);
+      if (out !== undefined) {
+        return out
+          .trim()
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // try the next strategy
+    }
+  }
+  throw new Error("the development database is not reachable by any known strategy");
+};
 
 if (!ROOT_PASSWORD || !DB_PASSWORD) {
   console.error("MIGRATIONS-FAIL: the development credentials are not available.");
@@ -87,7 +122,7 @@ try {
 
   // ---------------------------------------------------------------- boot
   say("building the image");
-  sh(`cd ~/seo-rebuild/app && docker build -q -t seo-v01:migrations . 2>&1 | tail -1`);
+  sh(`cd ${LOCAL ? "." : "~/seo-rebuild/app"} && docker build -q -t seo-v01:migrations . 2>&1 | tail -1`);
   sh(`docker rm -f ${APP} >/dev/null 2>&1 || true`);
   say("booting the application so Flyway migrates and Hibernate validates the schema");
   sh(

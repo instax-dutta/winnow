@@ -1,0 +1,33 @@
+name: Feature request
+description: Something you would like the application to do
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tell us what you are trying to do. The most useful requests describe the situation
+        rather than the solution, because there is usually more than one way to get there.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: The task, in your own words.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: Optional. A sketch of the idea helps, but it is not required.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have tried
+      description: Optional. If something does nearly what you want, that is useful to know.
+    validations:
+      required: false
