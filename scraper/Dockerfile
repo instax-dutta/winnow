@@ -8,7 +8,7 @@
 #
 # The image has no display and needs none: the browser runs headless.
 
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 # The browser lives here, and the runtime stage looks in the same place.
@@ -36,7 +36,7 @@ RUN set -eux; \
     test -x "${PUPPETEER_CACHE_DIR}/chrome/linux-${version}/chrome-linux64/chrome"; \
     rm -rf /root/.npm/_cacache
 
-FROM node:20-bookworm-slim AS runtime
+FROM node:22-bookworm-slim AS runtime
 
 ENV PUPPETEER_CACHE_DIR=/opt/puppeteer \
     NODE_ENV=production \

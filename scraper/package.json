@@ -5,7 +5,7 @@
   "description": "The Amazon search sidecar of winnow. Renders one page of Amazon search results and answers with JSON.",
   "type": "commonjs",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "scripts": {
     "start": "node server.js",
@@ -13,7 +13,7 @@
     "test": "node verify.js"
   },
   "dependencies": {
-    "puppeteer": "24.43.1",
+    "puppeteer": "25.2.0",
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-stealth": "2.11.2"
   }

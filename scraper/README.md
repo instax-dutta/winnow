@@ -217,6 +217,6 @@ user.
 ### A note on the pinned version
 
 `puppeteer` is pinned to 24.43.1, the last line that still supports Node 20. That line
-carries two advisories in the packages that download the browser (`extract-zip` and
-`basic-ftp`). Neither is reached at run time: they belong to the installer, not to the
-scraper. The fix is `puppeteer` 25, which needs Node 22.12 or later.
+The dependency tree is clean. `puppeteer` 25 pulls `@puppeteer/browsers` 3, which no longer
+depends on `extract-zip` or `basic-ftp`, so the two advisories that affected the `puppeteer` 24
+installer are gone rather than merely unreachable. `npm audit` reports nothing.

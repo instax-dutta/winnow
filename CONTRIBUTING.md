@@ -105,14 +105,13 @@ add the property to the record in `config/SecretStoreProperties`. Nothing else c
 `config/SecretStoreHealth` only checks the file store, so a new store should either
 satisfy the same contract or be given its own check.
 
-### Moving the Amazon sidecar to a current browser driver
+### Keeping the Amazon sidecar current
 
-The sidecar in `scraper/` uses `puppeteer` 24.x, which is the last line that supports
-Node 20. It carries two advisories in its installer's own dependencies, `extract-zip` and
-`basic-ftp`. Neither is on a runtime path, and the Dockerfile already works around the
-`extract-zip` defect by unpacking the browser itself. Moving to `puppeteer` 25 needs
-Node 22.12 or later and is a good first change.
+The sidecar in `scraper/` uses `puppeteer` 25 on Node 22. It was moved off `puppeteer` 24
+because the 24.x installer depends on `extract-zip` and `basic-ftp`, both of which carry
+unpatched advisories. `puppeteer` 25 pulls `@puppeteer/browsers` 3, which dropped both.
 
+The Amazon page markup changes regularly, so keeping the selectors current is ongoing work.
 The contract is fixed by `scraper/verify.js` and by
 `src/test/java/io/github/instaxdutta/winnow/extraction/AmazonScraperClientTest.java`, so a change that keeps
 both green is a change that keeps the two halves of the service in step.

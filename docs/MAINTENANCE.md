@@ -286,10 +286,9 @@ npm ci --ignore-scripts    # the install scripts download a browser
 npm test                   # proves the contract, no browser needed
 ```
 
-The install scripts of `puppeteer` 24.x can leave a browser that will not start, because
-`extract-zip` 2.0.1 stops part-way through the archive. The Dockerfile therefore fetches
-and unpacks the browser itself with `curl` and `unzip`, and fails the build if the binary
-is not there. If a local install behaves oddly, check that the browser actually starts.
+The Dockerfile fetches and unpacks the browser itself with `curl` and `unzip`, and fails the
+build if the binary is not there. If a local install behaves oddly, check that the browser
+actually starts.
 
 To debug it, run the service on its own:
 
@@ -301,10 +300,6 @@ curl 'http://127.0.0.1:3000/scrape?keyword=usb&page=1'
 
 It is bound to loopback by default. `HOST=0.0.0.0` opens the interface, and the service
 logs a warning when it does.
-
-The `puppeteer` 24.x line carries two advisories in its installer's own dependencies,
-`extract-zip` and `basic-ftp`. Neither is on a runtime path. The fix is `puppeteer` 25,
-which needs Node 22.12 or later. Moving to it is a good first contribution.
 
 ## The credential store on more than one instance
 

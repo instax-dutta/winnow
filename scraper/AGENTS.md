@@ -39,7 +39,8 @@ container, and the Java side only ever speaks JSON to it.
   `products` array. A bad request answers `400`.
 - **One browser page is read at a time per scrape.** At most two scrapes run at once.
 - **No secret.** The service needs no credential of its own.
-- **CommonJS, Node 20 or later.** No build step, no transpiler.
+- **CommonJS, Node 22.12 or later.** No build step, no transpiler. The floor is set by
+  `puppeteer` 25.
 
 ## Work Guidance
 
@@ -48,10 +49,10 @@ container, and the Java side only ever speaks JSON to it.
 - The `SCRAPE_STUB` environment variable points the service at a module that exports a stub
   reader. It exists so the contract can be proved without a browser, and it is how the
   verification script works.
-- The installer in `puppeteer` 24.x can leave a browser that will not start, because
-  `extract-zip` 2.0.1 stops mid-archive. The Dockerfile therefore fetches and unpacks the
-  browser itself and fails the build if the binary is not there. Do not go back to the
-  ordinary install without checking that.
+- The Dockerfile fetches and unpacks the browser itself rather than letting the installer do
+  it, and fails the build if the binary is not there. That stays true even though the
+  installer is no longer broken, because a build that verifies its own browser is a build
+  that cannot ship a browser that will not start.
 
 ## Verification
 
