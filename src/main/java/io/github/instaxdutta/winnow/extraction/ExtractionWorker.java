@@ -2,6 +2,7 @@ package io.github.instaxdutta.winnow.extraction;
 
 import io.github.instaxdutta.winnow.config.ExtractionProperties;
 import io.github.instaxdutta.winnow.domain.ExtractionStatus;
+import io.github.instaxdutta.winnow.domain.LogSafe;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

@@ -1,5 +1,6 @@
 package io.github.instaxdutta.winnow.config;
 
+import io.github.instaxdutta.winnow.domain.LogSafe;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -87,7 +88,7 @@ public class FileSecretStore implements SecretStore {
         } catch (IOException ex) {
             throw new UncheckedIOException("Cannot store the secret behind " + reference, ex);
         }
-        log.debug("Stored the secret behind {}", reference);
+        log.debug("Stored the secret behind {}", LogSafe.text(reference));
         return reference;
     }
 

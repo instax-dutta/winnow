@@ -2,6 +2,7 @@ package io.github.instaxdutta.winnow.web;
 
 import io.github.instaxdutta.winnow.domain.ConflictException;
 import io.github.instaxdutta.winnow.domain.ForbiddenException;
+import io.github.instaxdutta.winnow.domain.LogSafe;
 import io.github.instaxdutta.winnow.domain.NotFoundException;
 import io.github.instaxdutta.winnow.domain.QuotaExceededException;
 import io.github.instaxdutta.winnow.domain.ValidationException;
@@ -61,7 +62,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex, HttpServletRequest request) {
-        log.error("Unhandled exception for {} {}", request.getMethod(), request.getRequestURI(), ex);
+        log.error("Unhandled exception for {} {}", request.getMethod(), LogSafe.text(request.getRequestURI()), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("The request could not be completed"));
     }

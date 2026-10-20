@@ -1,4 +1,4 @@
-package io.github.instaxdutta.winnow.extraction;
+package io.github.instaxdutta.winnow.domain;
 
 /**
  * Makes a value safe to write into a log line.

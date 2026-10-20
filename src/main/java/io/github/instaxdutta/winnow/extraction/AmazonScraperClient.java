@@ -1,6 +1,7 @@
 package io.github.instaxdutta.winnow.extraction;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.github.instaxdutta.winnow.domain.LogSafe;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.instaxdutta.winnow.config.ScraperProperties;
 import java.io.IOException;

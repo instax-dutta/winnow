@@ -1,4 +1,4 @@
-package io.github.instaxdutta.winnow.extraction;
+package io.github.instaxdutta.winnow.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

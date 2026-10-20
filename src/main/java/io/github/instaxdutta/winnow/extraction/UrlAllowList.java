@@ -2,6 +2,7 @@ package io.github.instaxdutta.winnow.extraction;
 
 import io.github.instaxdutta.winnow.config.ScraperProperties;
 import io.github.instaxdutta.winnow.domain.ValidationException;
+import io.github.instaxdutta.winnow.domain.LogSafe;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;

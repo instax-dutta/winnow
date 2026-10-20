@@ -14,6 +14,16 @@ knows nothing about how the data is fetched or presented.
 
 ## Local Contracts
 
+- `LogSafe` lives here because it is the bottom of the stack: anything that logs a value
+  from outside the system uses it, and it has to be reachable from every layer.
+- **Every value that reaches a log from outside the system goes through `LogSafe`.** A
+  newline in a value would split one log entry into two, and an escape sequence could make
+  a log viewer do something unexpected. The sanitiser reduces the value to printable
+  characters and caps its length.
+- A value that came from the database, from a request, from a file upload or from the
+  environment is outside the system. An identifier, a count and the class name of an
+  exception are not.
+
 - Extend `AuditedEntity` unless the entity is documented as global.
 - Timestamps are `Instant`. The column is `DATETIME(6)`. No `String`, no `java.sql.Date`.
 - Soft delete is `deletedAt`. Soft-deleted rows are invisible to default repository methods.

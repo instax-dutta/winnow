@@ -1,6 +1,7 @@
 package io.github.instaxdutta.winnow.extraction;
 
 import io.github.instaxdutta.winnow.config.ExtractionProperties;
+import io.github.instaxdutta.winnow.domain.LogSafe;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
