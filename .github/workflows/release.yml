@@ -98,21 +98,21 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: bill-of-materials
-          path: target
+          path: dist
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-artifacts
-          path: target
+          path: .
       - name: Check the bill of materials
         run: |
-          test -f target/bom.json
-          head -c 400 target/bom.json
+          test -f dist/bom.json
+          head -c 400 dist/bom.json
           echo
       - name: Attest the bill of materials
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: target/seo-*.jar
-          sbom-path: target/bom.json
+          subject-path: dist/*.jar
+          sbom-path: dist/bom.json
 
   image:
     name: Container image
@@ -161,13 +161,17 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: release-artifacts
-          path: target
+          path: .
+      - name: Check the artifacts
+        run: |
+          ls -la dist/
+          test -n "$(ls dist/*.jar 2>/dev/null)"
       - name: Attest the build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: target/seo-*.jar
+          subject-path: dist/*.jar
       - name: Create the release
-        uses: softprops/action-gh-release@v2.2.1
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           name: ${{ needs.build.outputs.version }}
           tag_name: ${{ inputs.version && format('v{0}', inputs.version) || github.ref_name }}
@@ -183,14 +187,15 @@ jobs:
 
             A self-hosted cold mail and lead generation platform.
 
-            - The jar: `seo-*.jar`
+            - The jar: `winnow-*.jar`
             - The checksums: `SHA256SUMS`
+            - The bill of materials: `bom.json`
             - The container image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.version }}`
 
             The build is attested. Verify it with:
 
             ```
-            gh attestation verify seo-*.jar --repo ${{ github.repository }}
+            gh attestation verify winnow-*.jar --repo ${{ github.repository }}
             ```
 
             Every claim in the release notes is checked by the gate ledger in `GATES.md`.
