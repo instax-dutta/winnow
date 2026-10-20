@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Cold Mail">
+  <rect width="32" height="32" rx="8" fill="#3a57d0"/>
+  <path d="M7 10.5h18v11H7z" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M7.6 11.2 16 17.6l8.4-6.4" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

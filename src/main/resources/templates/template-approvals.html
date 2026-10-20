@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Approvals - Cold Mail'">Approvals</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'template-approvals', 'Approvals')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Approvals</h1>
+          <p class="page-sub">Templates waiting for sign off. A campaign can only use an approved template.</p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="approval-search">Search templates</label>
+            <input class="input input-sm" type="search" id="approval-search" data-role="search"
+                   placeholder="Search by name or subject" autocomplete="off">
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Templates waiting for approval</caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Status</th>
+                <th scope="col">Version</th>
+                <th scope="col">Updated</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-check"></use></svg>
+            <p class="empty-title">Nothing to approve</p>
+            <p class="empty-text">Templates submitted for review show up here.</p>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('approvals-pager')}"></div>
+      </section>
+
+      <dialog class="modal modal-wide" id="approval-preview" data-role="preview-dialog" aria-labelledby="approval-preview-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="approval-preview-title" data-role="title">Template preview</h2>
+          <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="muted" data-role="preview-subject"></p>
+          <!--/*
+            The body is the one field whose contract is "trusted HTML": it is
+            sanitised when the template is saved, so it is rendered as markup
+            here and nowhere else. Every other value on this page is escaped.
+          */-->
+          <div class="preview" data-role="preview-body" th:utext="${contentHtml}"></div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-secondary" type="button" data-action="close">Close</button>
+        </div>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/template-approvals.js}"></script>
+</body>
+</html>

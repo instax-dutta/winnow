@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Extraction - Cold Mail'">Extraction</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'extraction', 'Extraction')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Extraction</h1>
+          <p class="page-sub">Upload a spreadsheet of web links and the run finds the email addresses behind them.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" type="button" data-action="create">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-upload"></use></svg>
+            <span>New run</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="extraction-search">Search runs</label>
+            <input class="input input-sm" type="search" id="extraction-search" data-role="search"
+                   placeholder="Search by file name" autocomplete="off">
+          </div>
+          <div class="toolbar-filters">
+            <label class="sr-only" for="extraction-status">Filter by status</label>
+            <select class="select select-sm" id="extraction-status" data-role="status-filter">
+              <option value="">All statuses</option>
+              <option value="QUEUED">Queued</option>
+              <option value="RUNNING">Running</option>
+              <option value="SUCCESS">Success</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="FAILED">Failed</option>
+            </select>
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Extraction runs</caption>
+            <thead>
+              <tr>
+                <th scope="col">Source file</th>
+                <th scope="col">Domains</th>
+                <th scope="col">Status</th>
+                <th scope="col">Started</th>
+                <th scope="col">Finished</th>
+                <th scope="col">Last error</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-download"></use></svg>
+            <p class="empty-title">No extraction runs yet</p>
+            <p class="empty-text">Upload a spreadsheet of web links and the run collects the addresses it finds.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" type="button" data-action="create">Start a run</button>
+            </div>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('extraction-pager')}"></div>
+      </section>
+
+      <dialog class="modal" id="extraction-dialog" data-role="dialog" aria-labelledby="extraction-dialog-title">
+        <form data-role="form" novalidate>
+          <div class="modal-head">
+            <h2 class="modal-title" id="extraction-dialog-title" data-role="title">New extraction run</h2>
+            <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger modal-error" data-role="error" role="alert" hidden></div>
+
+            <div class="field">
+              <label class="field-label" for="extraction-file">Spreadsheet <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="file" id="extraction-file" name="file" accept=".xlsx,.xls,.csv" required>
+              <p class="hint">One web link per row. The file is read in memory and is never written to disk.</p>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" type="button" data-action="close">Cancel</button>
+            <button class="btn btn-primary" type="submit" data-role="submit">Start run</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog class="modal modal-wide" id="extraction-results" data-role="results-dialog" aria-labelledby="extraction-results-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="extraction-results-title" data-role="title">Extraction results</h2>
+          <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="table-wrap">
+            <table class="table">
+              <caption class="sr-only">Extracted addresses</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Domain</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Source row</th>
+                </tr>
+              </thead>
+              <tbody data-role="result-rows"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" data-role="result-empty" hidden>
+            <p class="empty-title">No addresses found</p>
+            <p class="empty-text">This run did not find any addresses.</p>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-secondary" type="button" data-action="close">Close</button>
+        </div>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/extraction.js}"></script>
+</body>
+</html>

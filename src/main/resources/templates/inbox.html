@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Inbox - Cold Mail'">Inbox</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'inbox', 'Inbox')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Inbox</h1>
+          <p class="page-sub">Replies that came back to the mailboxes you send from.</p>
+        </div>
+      </header>
+
+      <section class="panel">
+      <div class="toolbar">
+        <div class="toolbar-filters">
+          <label class="sr-only" for="inbox-account">Mailbox</label>
+          <select class="select select-sm" id="inbox-account" data-role="account">
+            <option value="">Choose a mailbox</option>
+          </select>
+        </div>
+        <div class="toolbar-search">
+          <label class="sr-only" for="inbox-search">Search messages</label>
+          <input class="input input-sm" type="search" id="inbox-search" data-role="search"
+                 placeholder="Search by sender or subject" autocomplete="off">
+        </div>
+        <div class="toolbar-filters">
+          <label class="sr-only" for="inbox-state">Filter by state</label>
+          <select class="select select-sm" id="inbox-state" data-role="state-filter">
+            <option value="">All messages</option>
+            <option value="unread">Unread only</option>
+            <option value="read">Read only</option>
+          </select>
+        </div>
+        <p class="toolbar-meta" data-role="summary"></p>
+      </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Inbound messages</caption>
+            <thead>
+              <tr>
+                <th scope="col">From</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Received</th>
+                <th scope="col">State</th>
+                <th scope="col" class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+        <div class="empty-state" data-role="empty" hidden>
+          <svg class="empty-mark" aria-hidden="true"><use href="#i-inbox"></use></svg>
+          <p class="empty-title" data-role="empty-title">Choose a mailbox</p>
+          <p class="empty-text" data-role="empty-text">Replies are collected from the mailboxes you send from. Pick one to read it.</p>
+        </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('inbox-pager')}"></div>
+      </section>
+
+      <dialog class="modal modal-wide" id="inbox-dialog" data-role="preview-dialog" aria-labelledby="inbox-dialog-title">
+        <div class="modal-head">
+          <h2 class="modal-title" id="inbox-dialog-title" data-role="title">Message</h2>
+          <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="muted" data-role="preview-from"></p>
+          <p class="muted" data-role="preview-received"></p>
+          <!--/*
+            The body is the one field whose contract is "trusted HTML": it is
+            sanitised when the message is stored, so it is rendered as markup
+            here and nowhere else. Every other value on this page is escaped.
+          */-->
+          <div class="preview" data-role="preview-body" th:utext="${bodyHtml}"></div>
+        </div>
+      <div class="modal-foot">
+        <button class="btn btn-secondary" type="button" data-action="close">Close</button>
+      </div>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/inbox.js}"></script>
+</body>
+</html>

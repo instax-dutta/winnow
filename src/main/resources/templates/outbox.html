@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Outbox - Cold Mail'">Outbox</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/layout :: shell(~{::main}, 'outbox', 'Outbox')}">
+    <main th:fragment="main" class="page">
+
+      <header class="page-head">
+        <div>
+          <h1 class="page-title">Outbox</h1>
+          <p class="page-sub">Messages waiting to go out, and what happened to the ones that already did.</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" type="button" data-action="create">
+            <svg class="nav-icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+            <span>Schedule message</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <label class="sr-only" for="outbox-search">Search messages</label>
+            <input class="input input-sm" type="search" id="outbox-search" data-role="search"
+                   placeholder="Search by recipient or subject" autocomplete="off">
+          </div>
+          <div class="toolbar-filters">
+            <label class="sr-only" for="outbox-status">Filter by status</label>
+            <select class="select select-sm" id="outbox-status" data-role="status-filter">
+              <option value="">All statuses</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="SENDING">Sending</option>
+              <option value="SENT">Sent</option>
+              <option value="FAILED">Failed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <p class="toolbar-meta" data-role="summary"></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" data-role="table">
+            <caption class="sr-only">Outbox</caption>
+            <thead>
+              <tr>
+                <th scope="col">To</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Scheduled for</th>
+                <th scope="col">Status</th>
+              <th scope="col">Attempts</th>
+              <th scope="col">Last error</th>
+              <th scope="col" class="col-actions">Actions</th>
+            </tr>
+            </thead>
+            <tbody data-role="rows"></tbody>
+          </table>
+
+          <div class="empty-state" data-role="empty" hidden>
+            <svg class="empty-mark" aria-hidden="true"><use href="#i-clock"></use></svg>
+            <p class="empty-title">The outbox is empty</p>
+            <p class="empty-text">Scheduled messages wait here until the scheduler picks them up.</p>
+            <div class="empty-actions">
+              <button class="btn btn-primary" type="button" data-action="create">Schedule a message</button>
+            </div>
+          </div>
+        </div>
+
+        <div th:replace="~{fragments/pagination :: pager('outbox-pager')}"></div>
+      </section>
+
+      <dialog class="modal" id="outbox-dialog" data-role="dialog" aria-labelledby="outbox-dialog-title">
+        <form data-role="form" novalidate>
+          <div class="modal-head">
+            <h2 class="modal-title" id="outbox-dialog-title" data-role="title">Schedule a message</h2>
+            <button class="modal-close" type="button" data-action="close" aria-label="Close">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-danger modal-error" data-role="error" role="alert" hidden></div>
+
+            <div class="field">
+              <label class="field-label" for="outbox-account">Mailbox <span class="req" aria-hidden="true">*</span></label>
+              <select class="select" id="outbox-account" name="fromAccountId" required>
+                <option value="">Choose a mailbox</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="outbox-to">Recipient <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="email" id="outbox-to" name="toEmail" maxlength="254" required
+                     autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="outbox-subject">Subject</label>
+              <input class="input" type="text" id="outbox-subject" name="subject" maxlength="998">
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="outbox-body">Body</label>
+              <textarea class="textarea" id="outbox-body" name="bodyHtml" rows="8"></textarea>
+              <p class="hint">HTML is allowed. It is sanitised when the message is scheduled.</p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="outbox-scheduled">Send at <span class="req" aria-hidden="true">*</span></label>
+              <input class="input" type="datetime-local" id="outbox-scheduled" name="scheduledAt" required>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" type="button" data-action="close">Cancel</button>
+            <button class="btn btn-primary" type="submit" data-role="submit">Schedule message</button>
+          </div>
+        </form>
+      </dialog>
+    </main>
+  </div>
+  <script type="module" th:src="@{/assets/js/outbox.js}"></script>
+</body>
+</html>

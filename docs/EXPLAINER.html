@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Winnow - how it works</title>
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --surface: #ffffff;
+    --surface-2: #f4f2ee;
+    --ink: #1c1b19;
+    --ink-2: #4a4844;
+    --ink-3: #78756e;
+    --line: #e2ded6;
+    --line-2: #cfc9be;
+    --accent: #2f5d50;
+    --accent-soft: #e6efeb;
+    --good: #2f5d50;
+    --good-soft: #e6efeb;
+    --info: #2c4f78;
+    --info-soft: #e8eef6;
+    --warn: #8a5a12;
+    --warn-soft: #fbf1de;
+    --radius: 10px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181a;
+      --surface: #1d2022;
+      --surface-2: #24282b;
+      --ink: #eceae6;
+      --ink-2: #b8b5af;
+      --ink-3: #8a8781;
+      --line: #2e3336;
+      --line-2: #3d4347;
+      --accent: #7fc0aa;
+      --accent-soft: #1d2c28;
+      --good: #7fc0aa;
+      --good-soft: #1d2c28;
+      --info: #8fb4dd;
+      --info-soft: #1c2630;
+      --warn: #dfb268;
+      --warn-soft: #2d2417;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 96px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  header.top .wrap { padding: 12px 24px; display: flex; gap: 20px; align-items: baseline; flex-wrap: wrap; }
+  header.top .brand { font-weight: 650; letter-spacing: -0.01em; }
+  header.top nav { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; }
+  header.top nav a { color: var(--ink-2); text-decoration: none; }
+  header.top nav a:hover { color: var(--accent); }
+
+  .hero { padding: 64px 0 40px; }
+  .hero h1 {
+    font-size: clamp(30px, 5vw, 46px); line-height: 1.12; letter-spacing: -0.025em;
+    margin: 0 0 18px; font-weight: 680; max-width: 20ch;
+  }
+  .hero p.lede { font-size: 19px; color: var(--ink-2); max-width: 66ch; margin: 0 0 14px; }
+  .hero p.lede strong { color: var(--ink); font-weight: 600; }
+  .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+  .meta span {
+    font: 500 12.5px/1 var(--mono); color: var(--ink-2);
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 7px 10px; border-radius: 6px;
+  }
+
+  h2 {
+    font-size: clamp(23px, 3.2vw, 30px); letter-spacing: -0.02em; font-weight: 660;
+    margin: 72px 0 8px; padding-top: 24px; border-top: 1px solid var(--line);
+  }
+  h2 .kicker {
+    display: block; font: 600 12px/1 var(--mono); letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+  }
+  h3 { font-size: 18px; letter-spacing: -0.012em; font-weight: 640; margin: 34px 0 8px; }
+  h4 { font-size: 15px; font-weight: 640; margin: 22px 0 6px; }
+  p { margin: 0 0 14px; max-width: 72ch; }
+  ul, ol { max-width: 72ch; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  code {
+    font: 13.5px/1.5 var(--mono);
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  pre {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 15px 17px; overflow-x: auto; font: 13px/1.6 var(--mono); margin: 0 0 18px;
+  }
+  pre code { background: none; border: 0; padding: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px 22px; margin: 0 0 16px;
+  }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .grid.four { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .grid .card { margin: 0; }
+  .card h3 { margin-top: 0; }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: 0.05em;
+    text-transform: uppercase; padding: 5px 7px; border-radius: 5px; margin-bottom: 10px;
+  }
+  .t-good { background: var(--good-soft); color: var(--good); }
+  .t-info { background: var(--info-soft); color: var(--info); }
+  .t-warn { background: var(--warn-soft); color: var(--warn); }
+
+  .jobs { counter-reset: job; }
+  .job { counter-increment: job; position: relative; padding-left: 46px; margin-bottom: 20px; }
+  .job::before {
+    content: counter(job);
+    position: absolute; left: 0; top: 1px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center; font: 650 14px/1 var(--sans);
+  }
+  .job h3 { margin: 0 0 4px; }
+  .job p { margin-bottom: 0; color: var(--ink-2); }
+
+  .steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+  .steps > li {
+    counter-increment: step; position: relative;
+    padding: 0 0 22px 46px; margin: 0;
+    border-left: 2px solid var(--line-2); margin-left: 15px;
+  }
+  .steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute; left: -16px; top: -2px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--line-2); color: var(--ink-2);
+    display: grid; place-items: center; font: 650 13px/1 var(--sans);
+  }
+  .steps h3 { margin: 0 0 5px; }
+  .steps p { margin-bottom: 8px; color: var(--ink-2); }
+
+  .scroll { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; background: var(--surface); }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 640; font-size: 13px; letter-spacing: 0.01em; }
+  tr:last-child td { border-bottom: 0; }
+  td code { font-size: 12.5px; }
+
+  .flow {
+    display: grid; gap: 0; grid-template-columns: 1fr;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 20px; margin: 0 0 20px;
+  }
+  .flow .node {
+    background: var(--surface-2); border: 1px solid var(--line-2);
+    border-radius: 8px; padding: 12px 15px; font-size: 14.5px;
+  }
+  .flow .node b { display: block; font-weight: 640; margin-bottom: 2px; }
+  .flow .node span { color: var(--ink-2); }
+  .flow .arrow { text-align: center; color: var(--ink-3); padding: 7px 0; font-size: 18px; line-height: 1; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px; margin: 0 0 20px;
+  }
+  .callout.info { border-left-color: var(--info); }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout h3 { margin-top: 0; }
+  .callout a, p a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .callout a:hover, p a:hover { color: var(--ink); }
+
+  .stat { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0 0 20px; }
+  .stat div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 17px; }
+  .stat b { display: block; font-size: 26px; font-weight: 680; letter-spacing: -0.02em; line-height: 1.2; }
+  .stat span { font-size: 13.5px; color: var(--ink-2); }
+
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { position: relative; padding-left: 26px; margin-bottom: 8px; }
+  .checklist li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--good); font-weight: 700; }
+
+  footer {
+    margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line);
+    color: var(--ink-3); font-size: 14px;
+  }
+  footer a { color: var(--ink-2); }
+  @media (max-width: 620px) {
+    .hero { padding-top: 40px; }
+    header.top nav { font-size: 13px; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand">Winnow</span>
+    <nav>
+      <a href="#what">What it does</a>
+      <a href="#flow">How it works</a>
+      <a href="#tenants">Tenants</a>
+      <a href="#leads">Finding leads</a>
+      <a href="#sending">Sending</a>
+      <a href="#inbox">Replies</a>
+      <a href="#security">Security</a>
+      <a href="#run">Running it</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="hero">
+    <h1>How Winnow works</h1>
+    <p class="lede"><strong>Winnow is a self-hosted lead generation platform for agencies.</strong>
+      It finds contact addresses on the websites you point it at, keeps them in lists you
+      control, sends your own email from your own mailboxes, and watches those mailboxes to
+      see who replied.</p>
+    <p class="lede">Nothing is sent to a third-party service. There is no per-lead fee, and
+      no third party holds your prospect list. Everything runs on a machine you control.</p>
+    <p class="lede">This page explains the whole thing in plain language: what each part does,
+      how the data flows, and what happens when something goes wrong.</p>
+    <div class="meta">
+      <span>version 0.1.0</span>
+      <span>Java 21 / Spring Boot 3.5</span>
+      <span>MySQL 8</span>
+      <span>AGPL-3.0</span>
+      <span>self-hosted</span>
+    </div>
+  </section>
+
+  <h2 id="what"><span class="kicker">Part one</span>What it is for</h2>
+
+  <p>An agency running outbound campaigns has a repetitive problem. It needs to find people
+    who might buy something, put them into a list, write emails to them, send a lot of those
+    emails, and then notice who answered. Every step of that is mechanical, and every step
+    of it is where the cost and the risk live.</p>
+
+  <p>Winnow does those four steps. That is the whole product.</p>
+
+  <div class="jobs">
+    <div class="job">
+      <h3>Find people</h3>
+      <p>You upload a spreadsheet of website addresses. The system visits each site, reads
+        the raw HTML, and pulls out any email addresses it can find. Those become a list you
+        can export as a spreadsheet.</p>
+    </div>
+    <div class="job">
+      <h3>Organise them</h3>
+      <p>Those addresses, plus any you typed in yourself, become <strong>clients</strong>.
+        You sort clients into named <strong>groups</strong>, so you can send to one group and
+        deliberately not to another.</p>
+    </div>
+    <div class="job">
+      <h3>Send to them</h3>
+      <p>You write an email once, as a rich text document, and a second person approves it.
+        Then you pick a group, pick which mailbox it goes out from, and press send. The
+        system works through them one at a time and records how each one went.</p>
+    </div>
+    <div class="job">
+      <h3>Catch the replies</h3>
+      <p>A background job connects to each of your mailboxes, reads the new mail, and stores
+        it, so you can see who answered and what they said.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p><strong>Why self-hosted matters here.</strong> A prospect list is a business asset. If
+      a third-party service holds it, so does everyone that third party works with. Running
+      your own means the list lives on your hardware, the mail goes out from mailboxes you
+      already own and pay for, and the per-lead fees other tools charge are simply not part
+      of the running cost.</p>
+  </div>
+
+  <h2 id="flow"><span class="kicker">Part two</span>How the whole thing fits together</h2>
+
+  <p>Here is a day in the life of the system, as if you were watching it work.</p>
+
+  <div class="flow">
+    <div class="node"><b>1. You sign in</b><span>Your username and password. Nothing else is
+      asked for: no licence key, no activation code, no machine fingerprint. Your account
+      carries a role, and the role decides what you can do.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>2. You build a client list</b><span>Upload a spreadsheet of names
+      and addresses, or add a group by hand. Each column is read from the column it belongs
+      to, and a malformed row is reported back to you rather than silently skipped.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>3. You write a template</b><span>A rich text email with its own
+      subject line. It starts as a draft. You submit it, a manager approves it, and only then
+      can it be used. If somebody edits an approved template, it goes back for approval
+      again.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>4. You register your mailboxes</b><span>For ordinary sending: an
+      address, a mail server, a port and an app password. For Google: the account address
+      and an OAuth client. The passwords themselves are never typed into the database - see
+      the security section.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>5. You press send</b><span>The system resolves the recipients inside
+      your group, checks the sending limits, creates one delivery record per recipient, and
+      hands the job to a background worker. That worker sends each message, records success
+      or failure against that recipient, and updates the campaign totals as it goes.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>6. Separately, you look for leads</b><span>Upload a spreadsheet of
+      domains. A bounded pool of workers visits each one, checks the address is safe to
+      visit, reads the page, and extracts the addresses on it. Results are written in
+      batches, and the same address is never stored twice in one run.</span></div>
+    <div class="arrow">↓</div>
+    <div class="node"><b>7. Separately, the scheduled work runs</b><span>Every minute the
+      outbox worker looks for messages whose time has come and sends them. Every few minutes
+      the inbox worker polls your mailboxes for new mail. A third worker advances any lead
+      extraction that is still running.</span></div>
+  </div>
+
+  <h2 id="tenants"><span class="kicker">Part three</span>Several agencies, one installation</h2>
+
+  <p>More than one company can use the same installation. Each signs in with its own
+    account, and each sees only its own data. That is the single most important property of
+    the whole system, so it is worth being precise about how it works.</p>
+
+  <div class="card">
+    <h3>The tenant is the signed-in user</h3>
+    <p>Not a value in a session, not a value in a form, not a value the browser sends. It is
+      read from the security context on the server, on every single request, and it is passed
+      explicitly into every service call as the first argument. A request has no way to
+      choose its own tenant.</p>
+  </div>
+
+  <div class="card">
+    <h3>The database filters on it again</h3>
+    <p>Every query that returns tenant data filters on the owner, and every query that
+      changes tenant data requires the owner. A record belongs to exactly one tenant, and
+      the foreign keys are real ones, so a row cannot end up attached to the wrong owner.</p>
+  </div>
+
+  <div class="card">
+    <h3>It is tested, not assumed</h3>
+    <p>There is a test file with 75 checks that proves one tenant cannot read or change
+      another tenant's data, covering every repository method and every mutating operation
+      in the system. If somebody adds a new endpoint and forgets the filter, the build
+      fails.</p>
+  </div>
+
+  <h3>The roles</h3>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:22%">Role</th><th>Can do</th></tr></thead>
+      <tbody>
+        <tr><td><code>ROLE_VIEWER</code></td><td>Read everything in their own account, and change nothing.</td></tr>
+        <tr><td><code>ROLE_OPERATOR</code></td><td>Everything a viewer can do, plus editing clients, groups, templates and sending accounts, and running campaigns.</td></tr>
+        <tr><td><code>ROLE_MANAGER</code></td><td>Everything an operator can do, plus approving or rejecting templates.</td></tr>
+        <tr><td><code>ROLE_ADMIN</code></td><td>Everything, including managing users and sending accounts.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="leads"><span class="kicker">Part four</span>Finding leads</h2>
+
+  <p>This is the part that needs the most care, because it is the part that goes and visits
+    websites you did not build.</p>
+
+  <h3>What happens when you upload a list of domains</h3>
+  <ol class="steps">
+    <li>
+      <h3>The list is read</h3>
+      <p>Column A of the spreadsheet is the domain. Blank rows are skipped, and the run
+        records how many domains it accepted.</p>
+    </li>
+    <li>
+      <h3>Each address is checked before it is visited</h3>
+      <p>Only <code>http</code> and <code>https</code> are allowed. The host name is resolved
+        and <em>every</em> address it resolves to is checked. Anything pointing at a private
+        network, the loopback interface, or the cloud metadata address is refused, and that
+        refusal cannot be switched off. If an operator has set a list of permitted domains,
+        anything outside it is refused too.</p>
+    </li>
+    <li>
+      <h3>The page is fetched with a time limit</h3>
+      <p>Five seconds to connect, ten to read, and a cap on how large a response may be. A
+        redirect is followed at most twice, and each hop is checked again. A site that hangs
+        or points somewhere unexpected cannot hold a worker open or take the system somewhere
+        it should not go.</p>
+    </li>
+    <li>
+      <h3>Addresses are pulled out and kept only if they belong</h3>
+      <p>The page is scanned with a conservative pattern. An address is kept only if its
+        domain matches the domain that was crawled, so a page that links to a partner does
+        not drag that partner into your list.</p>
+    </li>
+    <li>
+      <h3>Results are written in batches</h3>
+      <p>Hundreds at a time, never one insert per address. The same address is stored once
+        per run, enforced by the database rather than by memory, so a run that is repeated
+        behaves the same way every time.</p>
+    </li>
+    <li>
+      <h3>The run always ends</h3>
+      <p>Success, partial, or failed. A domain that cannot be reached is counted and does not
+        fail the run. The status is never left hanging.</p>
+    </li>
+  </ol>
+
+  <div class="callout info">
+    <p><strong>What is deliberately not here.</strong> Winnow reads public pages. It does not
+      log in anywhere, does not work around a block, and does not fetch a site that asks it
+      not to. There is a second, separate tool in the project for reading Amazon search
+      results through a real browser; it runs as its own service on your own machine, reached
+      only over loopback.</p>
+  </div>
+
+  <h2 id="sending"><span class="kicker">Part five</span>Sending</h2>
+
+  <p>There are two ways to send, and they suit different situations.</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="tag t-good">Route one</span>
+      <h3>A campaign</h3>
+      <p>You pick a group, a template and a sending mailbox. The system resolves the
+        recipients, creates a delivery record for each, and a background worker sends them
+        one at a time. You can watch the progress, and you can cancel it. Each recipient
+        gets their own record saying sent or failed, with the reason if it failed.</p>
+    </div>
+    <div class="card">
+      <span class="tag t-info">Route two</span>
+      <h3>The outbox</h3>
+      <p>You schedule individual messages for a time in the future. A background worker picks
+        them up when they are due. Each row is claimed with a conditional update, so a
+        message is never sent twice even if two application instances are running at the same
+        time.</p>
+    </div>
+  </div>
+
+  <h3>The rules the sender works to</h3>
+  <ul class="checklist">
+    <li><strong>Separate limits, measured properly.</strong> A daily limit, an hourly limit
+      and a monthly limit, per account and per sending mailbox, counted from the system's
+      own delivery records in real calendar windows. A limit labelled daily and counted
+      monthly is a limit nobody can reason about.</li>
+    <li><strong>Timeouts on every connection.</strong> Fifteen seconds to connect, thirty to
+      read, thirty to write. Without them, one quiet mail server holds a worker open
+      indefinitely.</li>
+    <li><strong>One message per recipient.</strong> Each message is built fresh, so a
+      failure halfway through cannot leave anything behind for the next recipient.</li>
+    <li><strong>One bad recipient does not stop the batch.</strong> The failure and its
+      reason are recorded against that recipient, and the campaign carries on.</li>
+    <li><strong>The subject is its own field.</strong> It is validated, and it is never
+      derived from something else.</li>
+    <li><strong>Plain text as well as HTML.</strong> Every message carries both, so it
+      survives mail clients that will not show HTML.</li>
+    <li><strong>Your variables are escaped.</strong> A value substituted into the body is
+      HTML-escaped, so a value that contains markup shows up as text rather than as
+      markup.</li>
+  </ul>
+
+  <h2 id="inbox"><span class="kicker">Part six</span>Catching the replies</h2>
+
+  <p>The inbox worker connects to each registered mailbox, reads what has arrived, and
+    stores it. The details that matter:</p>
+
+  <ul class="checklist">
+    <li><strong>It only reads new mail.</strong> It picks up from where the last poll
+      finished, rather than asking for everything ever sent.</li>
+    <li><strong>It never stores the same message twice.</strong> Each message has an
+      identifier from the mail provider, and the database refuses a duplicate. Polling twice
+      changes nothing.</li>
+    <li><strong>It does not block.</strong> The connection has a timeout, and the folder is
+      always closed afterwards, even when something went wrong.</li>
+    <li><strong>A mailbox that fails does not stop the others.</strong> The failure is
+      logged and the worker moves on.</li>
+    <li><strong>The body is cleaned before it is stored.</strong> Anything active in an
+      inbound message is removed, so a hostile email cannot become a problem in your
+      browser.</li>
+  </ul>
+
+  <h2 id="security"><span class="kicker">Part seven</span>How it is kept safe</h2>
+
+  <p>This section is the short version. The long version is in
+    <code>docs/SECURITY.md</code>.</p>
+
+  <h3>Credentials never live in the database</h3>
+  <p>A password is never stored in a table column, and never appears in a response, a log
+    line or a file in the repository. What the database holds is a <em>reference</em>. The
+    secret itself lives in a protected store: one file per secret, readable only by the
+    application user, named by a hash so that listing the directory discloses nothing. The
+    mail code fetches the value at the moment it needs it, uses it, and throws it away. It
+    is never cached on an object.</p>
+
+  <div class="callout">
+    <p><strong>And it is checked automatically.</strong> Every file in the repository is
+      scanned for anything shaped like a credential, on every build. A match fails the
+      build. The same check runs on the documentation, so a credential quoted in a document
+      is caught too.</p>
+  </div>
+
+  <h3>Signing in</h3>
+  <ul class="checklist">
+    <li>Passwords are stored as bcrypt hashes at cost 12.</li>
+    <li>One session per account at a time, and expired sessions are actually cleaned up
+      rather than piling up.</li>
+    <li>After too many wrong passwords the account locks for a while.</li>
+    <li>Every failure gives the same message, so nobody can tell from the login page whether
+      an account exists, is disabled, or is locked.</li>
+    <li>Nothing about the machine is checked. There is no licence, no activation, and no
+      hardware fingerprint.</li>
+  </ul>
+
+  <h3>Requests that change things</h3>
+  <ul class="checklist">
+    <li>Every action that changes data is a proper change request, never a plain page
+      link. A page load cannot delete anything.</li>
+    <li>Every such request carries a protection token, and one that arrives without it is
+      refused.</li>
+    <li>Uploads are checked for size, parsed in memory, and never written to a path built
+      from something a user typed.</li>
+    <li>Text that came from a user is escaped by default when it is shown again.</li>
+  </ul>
+
+  <h3>Staying private</h3>
+  <ul class="checklist">
+    <li>Only addresses on a permitted list can be fetched, and private network ranges are
+      always refused.</li>
+    <li>Outbound calls all have time limits and size limits.</li>
+    <li>Background work is bounded. A large file cannot create an unbounded number of
+      tasks.</li>
+    <li>Every query for tenant data is scoped to the tenant.</li>
+  </ul>
+
+  <h2 id="run"><span class="kicker">Part eight</span>Running it</h2>
+
+  <h3>The quick way</h3>
+  <pre><code>cp .env.development.example .env.development   # set the database password
+docker compose up -d --build
+# open http://127.0.0.1:8083
+# sign in as "admin" with the password from BOOTSTRAP_PASSWORD</code></pre>
+
+  <p>That starts the application and a MySQL 8 database. The database listens on the
+    loopback interface only, so it is not reachable from the network.</p>
+
+  <h3>The way that suits a server</h3>
+  <pre><code>./mvnw verify            # build and run the whole test suite
+./mvnw spring-boot:run    # run against a database you already have</code></pre>
+
+  <h3>Configuration</h3>
+  <p>Everything is read from the environment, so the same image runs in every place.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:32%">Variable</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>DB_URL</code></td><td>Where the database is.</td></tr>
+        <tr><td><code>DB_USERNAME</code> / <code>DB_PASSWORD</code></td><td>How to reach it.</td></tr>
+        <tr><td><code>BOOTSTRAP_USERNAME</code> / <code>BOOTSTRAP_PASSWORD</code></td><td>Creates the first administrator on a fresh install. Change the password and it is replaced on the next start.</td></tr>
+        <tr><td><code>SECRET_STORE_PATH</code></td><td>Where the credentials are kept. Keep it on a private volume.</td></tr>
+        <tr><td><code>UPLOAD_DIR</code></td><td>Where generated spreadsheets are written.</td></tr>
+        <tr><td><code>SERVER_PORT</code></td><td>Which port the application listens on.</td></tr>
+        <tr><td><code>SCRAPER_URL</code></td><td>Where the browser sidecar for Amazon results is running.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>How it is checked</h3>
+  <p>The project is built around checks that run on every change and fail the build when
+    something is wrong. There are 13 of them, and every one has a recorded result.</p>
+  <div class="stat">
+    <div><b>13 / 13</b><span>checks green</span></div>
+    <div><b>199</b><span>tests, none failing</span></div>
+    <div><b>75</b><span>tenant isolation checks</span></div>
+    <div><b>49</b><span>request protection checks</span></div>
+    <div><b>235</b><span>files scanned for secrets</span></div>
+  </div>
+  <p>The application is also built into a container and started against an empty database as
+    part of the checks, so "it starts" is something the build proves rather than something
+    the documentation claims.</p>
+
+  <h3>Where to read more</h3>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:38%">File</th><th>What it covers</th></tr></thead>
+      <tbody>
+        <tr><td><code>README.md</code></td><td>Getting started, configuration, the project layout.</td></tr>
+        <tr><td><code>docs/ARCHITECTURE.md</code></td><td>How the system is put together, the data model, the send and extraction flows.</td></tr>
+        <tr><td><code>docs/SECURITY.md</code></td><td>The threat model, the controls, and what is still a limitation.</td></tr>
+        <tr><td><code>docs/MAINTENANCE.md</code></td><td>How to build, deploy, migrate and troubleshoot.</td></tr>
+        <tr><td><code>AGENTS.md</code></td><td>The rules any developer or agent has to follow, and where to look for each part of the project.</td></tr>
+        <tr><td><code>GATES.md</code></td><td>The checks, and the recorded proof that each one passed.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>Winnow is open source under the AGPL-3.0. Everything described here is checked
+      against the code on every build.</p>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <title th:text="'Sign in - Cold Mail'">Sign in</title>
+  <link rel="icon" th:href="@{/assets/img/favicon.svg}" type="image/svg+xml">
+  <link rel="stylesheet" th:href="@{/assets/css/app.css}">
+</head>
+<body class="login-body">
+  <main class="login-shell">
+    <section class="login-card" aria-labelledby="login-heading">
+      <div class="login-brand">
+        <img th:src="@{/assets/img/logo.svg}" alt="" width="34" height="34">
+        <div>
+          <p class="login-brand-name" id="login-heading">Cold Mail</p>
+          <p class="login-brand-sub">Cold email and lead generation</p>
+        </div>
+      </div>
+
+      <!--/*
+        The same message is shown for every authentication failure. The page
+        never says which half of the credentials was wrong. The query
+        parameters are what Spring Security redirects to, and the model
+        attributes are what the login controller may set instead.
+      */-->
+      <div class="alert alert-danger" role="alert" th:if="${param.error != null or error != null}"
+           th:text="${error != null ? error : 'Sign in failed. Check your username and password and try again.'}">
+        Sign in failed. Check your username and password and try again.
+      </div>
+      <div class="alert alert-success" role="status" th:if="${param.logout != null or message != null}"
+           th:text="${message != null ? message : 'You have been signed out.'}">
+        You have been signed out.
+      </div>
+
+      <div class="alert alert-danger" role="alert" data-role="form-error" hidden></div>
+
+      <form th:action="@{/login}" method="post" id="login-form" novalidate>
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+        <div class="field">
+          <label class="field-label" for="username">Username</label>
+          <input class="input" type="text" id="username" name="username"
+                 autocomplete="username" autocapitalize="none" spellcheck="false"
+                 required autofocus>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <div class="input-group">
+            <input class="input" type="password" id="password" name="password"
+                   autocomplete="current-password" required>
+            <button class="btn btn-ghost input-affix" type="button" id="toggle-password"
+                    aria-pressed="false" aria-controls="password">Show</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit" id="login-submit">Sign in</button>
+      </form>
+
+      <p class="login-foot">Access is limited to accounts created by an administrator.</p>
+    </section>
+  </main>
+
+  <script type="module" th:src="@{/assets/js/login.js}"></script>
+</body>
+</html>
