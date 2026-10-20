@@ -11,6 +11,8 @@ RUN mvn -B -q dependency:go-offline
 
 COPY src ./src
 RUN mvn -B -q -DskipTests package
+# The jar is copied to a fixed name, so the image does not care what version was built.
+RUN find target -maxdepth 1 -name '*.jar' ! -name '*.original' -exec cp {} /build/app.jar \;
 
 # Runtime stage: a JRE and the jar. No compiler, no Maven, no shell history.
 FROM eclipse-temurin:21-jre-jammy AS runtime
@@ -21,7 +23,7 @@ RUN groupadd --system --gid 1001 seo \
  && chown -R seo:seo /app
 
 WORKDIR /app
-COPY --from=build /build/target/winnow.jar /app/seo.jar
+COPY --from=build /build/app.jar /app/winnow.jar
 
 USER seo
 EXPOSE 8083
@@ -34,4 +36,4 @@ ENV SERVER_PORT=8083 \
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD ["/bin/sh", "-c", "exec 3<>/dev/tcp/127.0.0.1/${SERVER_PORT} && printf 'GET /actuator/health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q '200'"]
 
-ENTRYPOINT ["/bin/sh", "-c", "exec java $JAVA_OPTS -jar /app/seo.jar"]
+ENTRYPOINT ["/bin/sh", "-c", "exec java $JAVA_OPTS -jar /app/winnow.jar"]
