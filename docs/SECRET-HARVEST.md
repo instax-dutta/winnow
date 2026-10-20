@@ -24,13 +24,13 @@
 
 - **MySQL root password in plaintext** in `application.properties`, alongside username `root`.
 - **2 Google OAuth clients** fully compromised: client id, client secret, refresh token and
-  live access token for `elexyt24@gmail.com` and `saas@seoagencey.com`. The client secrets
+  live access token for `[redacted - see SECRETS.txt]` and `[redacted - see SECRETS.txt]`. The client secrets
   carry the `GOCSPX-` prefix that Google issues to desktop OAuth clients, so any value with
   that prefix anywhere in an old deployment should be treated as leaked.
 - **41 Gmail/Hostinger SMTP app passwords** in `email_master` - one per sending account.
 - **Licence JWT** shipped in config. The code only *decodes* it and checks `exp`; the
   HS256 signature is never verified, so the licence is trivially forgeable.
-- **MAC-address lock** (`mac=D8-BB-C1-5E-BC-88`) - the app refuses to authenticate on any
+- **MAC-address lock** (`mac=[redacted - see SECRETS.txt]`) - the app refuses to authenticate on any
   other machine. Machine-bound licensing, not a security control.
 - **WordPress REST API token** in config.
 - **3 bcrypt password hashes** (two are the *same* hash reused across two accounts)

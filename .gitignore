@@ -5,6 +5,17 @@ SECRETS.txt
 # The development database credentials. Never committed, never in a script.
 .env.development
 
+# The decompiled original application.
+#
+# It is another party's source code. The ANALYSIS of it (docs/reverse-engineering/) is
+# published, because that is the valuable part and it is our own work. The decompiled
+# source is kept locally as the evidence behind the analysis, and it is not published.
+#
+# If this project is republished and the owner holds the rights to the original, remove
+# these two lines and run `git add -f reference/decompiled` to include it.
+reference/decompiled/
+reference/decompiled.tar.gz
+
 # Build output
 target/
 build/

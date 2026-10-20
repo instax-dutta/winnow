@@ -202,7 +202,8 @@ All failures surface to the user as the same message: `UsernameNotFoundException
   ```java
   login.setPassword(this.bCryptPasswordEncoder.encode((CharSequence)login.getPassword()));
   ```
-  → strength 10. **[CFG]** The seeded hashes are `$2y$12$…` / `$2a$12$…` (strength **12**), and two accounts share the *same* hash (`$2y$12$QTTMcjGKiCVKNvNa242tVu8SPi0SytTAMpT3XRscxNXHHu1nY4Kui` for `mohantybadal39@gmail.com` and `admin@apexinfoserve.com`). Spring's `BCryptPasswordEncoder.matches()` accepts `$2a$/$2b$/$2y$` and any cost, so the 12-cost hashes still verify; only *new* users get cost 10.
+  → strength 10. **[CFG]** The seeded hashes are `$2y$12$…` / `$2a$12$…` (strength **12**), and two accounts share the *same* hash - the hash of the first operator account also
+  authenticates the administrator account (both values are in `SECRETS.txt`). Spring's `BCryptPasswordEncoder.matches()` accepts `$2a$/$2b$/$2y$` and any cost, so the 12-cost hashes still verify; only *new* users get cost 10.
 - `DaoAuthenticationProvider` picks up the single `BCryptPasswordEncoder` bean; the `PasswordEncoder` interface bean does not exist (the `SecurityConfiguration` method is not annotated), but the concrete-type bean satisfies the provider.
 
 ### 2.3 Session policy / max sessions / fixation
@@ -353,7 +354,7 @@ for (int i = 0; i < mac.length; ++i) {
 }
 ```
 - Interface selected = the one bound to `InetAddress.getLocalHost()` (usually the default-route NIC). **Not** `getHardwareAddress()` over all NICs.
-- Format = **uppercase hex, dash-separated, no trailing dash** → `D8-BB-C1-5E-BC-88`.
+- Format = **uppercase hex, dash-separated, no trailing dash** → `[redacted - see SECRETS.txt]`.
 - `System.out.print("MAC address  : " + stringBuilder.toString());` → the machine's MAC is **written to stdout on every login attempt**.
 
 ### 4.2 Comparison
@@ -363,7 +364,7 @@ if (!Objects.requireNonNull(this.env.getProperty("mac")).equalsIgnoreCase(string
     throw new UsernameNotFoundException("License expired license renewal contact administrator");
 }
 ```
-- Config key: `mac` (`application.properties`). **[CFG]** value `D8-BB-C1-5E-BC-88`.
+- Config key: `mac` (`application.properties`). **[CFG]** value `[redacted - see SECRETS.txt]`.
 - Comparison is `String.equalsIgnoreCase` over the **whole string** → case-insensitive, but a different NIC order / a different NIC / a VM's virtual MAC all fail.
 - `Objects.requireNonNull` → NPE if `mac` is absent from config (not caught → 500).
 
@@ -377,7 +378,7 @@ if (jwt.getExpiresAt().before(new Date())) {
 ```
 - Library: **auth0 `com.auth0.jwt.JWT`** → `decode()` = **decode only, signature NEVER verified, no algorithm/secret supplied**. The licence is trivially forgeable by anyone who can edit `application.properties` (or `JWT.decode("...")` on a self-signed token).
 - Config key: `license`. **[CFG]** value:
-  `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTc1ODE3MTE4NywiaWF0IjoxNzU1NDkyNzg3fQ.gcTx31quv4KJ-VfMmTWkdpsekNAjYjugaBL7nZWWsUo`
+  `[redacted - see SECRETS.txt]`
   → payload `{"Role":"Admin","Issuer":"Issuer","Username":"JavaAnUse","exp":1758171187,"iat":1755492787}`.
 - **The shipped licence expired at `1758171187` = 2025-09-18T04:53:07Z.** Today is 2026-10-19 ⇒ `getExpiresAt().before(now)` is **true** ⇒ *the reference build cannot authenticate anyone, on any machine, right now.* You must reissue a licence (or drop the check) when rebuilding.
 - `getExpiresAt()` returns `null` for a token without `exp` → **NPE** (not caught) → 500. A forged licence therefore needs an `exp` claim.
@@ -543,7 +544,7 @@ public List<GmailMaster> getAllGmail(String email) throws Exception {
     return this.gmailService.getAllGmail();      // gmailMasterRepository.findAll()
 }
 ```
-`GmailMaster` fields: `gmailMasterId, email, clientId, secret, refreshToken, accessToken, isActive, createdBy, createdDate, modifiedBy, modifiedDate` — **no `@JsonIgnore` anywhere** ⇒ the response contains live Google OAuth **client secrets, refresh tokens and access tokens** for every configured mailbox. **[CFG]** the harvested values include `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` and `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`.
+`GmailMaster` fields: `gmailMasterId, email, clientId, secret, refreshToken, accessToken, isActive, createdBy, createdDate, modifiedBy, modifiedDate` — **no `@JsonIgnore` anywhere** ⇒ the response contains live Google OAuth **client secrets, refresh tokens and access tokens** for every configured mailbox. **[CFG]** the harvested values include `[redacted - see SECRETS.txt]` and `[redacted - see SECRETS.txt]`.
 
 Same class of leak:
 - `POST /getEmailMaster` and `GET /getEmailMasterById` → `EmailMaster` (has `private String password;`, no `@JsonIgnore`) → **plaintext SMTP app passwords** in the JSON body. **[CFG]** 41 SMTP app passwords live in `email_master`.
@@ -575,7 +576,7 @@ All redirects are hard-coded: `response.sendRedirect("/welcome")` (`LoginSuccess
 - `controller/EmailSendController.java:68` — `https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec` (a placeholder URL, not a credential; the endpoint is non-functional).
 - `cfg/PuppeteerRunner.java:18` — `new ProcessBuilder("npm.cmd", "install")` and `new ProcessBuilder("node", "server.js")` in `src/main/resources/puppeteer` (Windows-only `npm.cmd`; the class is not a bean and is never referenced ⇒ dead).
 - `scraper/service/AmazonScraperService.java:25` — `http://localhost:3000/scrape?url=` (plaintext local HTTP; class is not a bean, no caller ⇒ dead).
-- **[CFG]** the real secrets live in `application.properties`: MySQL root password `elexyt2024`, `license` JWT, `mac`, plus a WordPress REST token; and in the DB seed: 41 SMTP app passwords, 2 Google OAuth clients (id/secret/refresh/access token), 3 bcrypt hashes (two identical).
+- **[CFG]** the real secrets live in `application.properties`: MySQL root password `[redacted - see SECRETS.txt]`, `license` JWT, `mac`, plus a WordPress REST token; and in the DB seed: 41 SMTP app passwords, 2 Google OAuth clients (id/secret/refresh/access token), 3 bcrypt hashes (two identical).
 
 ### 6.12 Other findings worth carrying into the rebuild
 1. **403 on `GET /`** for every seeded role (`hasRole("USER")` vs `ROLE_ADMIN|ROLE_EMP|ROLE_MANG|ROLE_HR`) — see §3.2.
@@ -644,7 +645,7 @@ Both are `permitAll` holes for URLs that (currently) 404. **[CFG]** the config f
 5. Failed login → `/login?error` → *"Your username and password is invalid."* (licence/MAC failures are indistinguishable from bad credentials).
 6. `app.upload.path` = `C:\deployment`, used by bare string concatenation for the xlsx download; `spring.servlet.multipart.*` = 128MB.
 7. `server.port` = 8083 **[CFG]**; DB = `jdbc:mysql://localhost:3306/emailsender`, user `root` **[CFG]**.
-8. The licence JWT in the repo **expired 2025-09-18** ⇒ reissue before you can log in; the MAC is `D8-BB-C1-5E-BC-88` **[CFG]**.
+8. The licence JWT in the repo **expired 2025-09-18** ⇒ reissue before you can log in; the MAC is `[redacted - see SECRETS.txt]` **[CFG]**.
 
 ---
 

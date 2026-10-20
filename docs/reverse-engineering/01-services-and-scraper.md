@@ -12,11 +12,11 @@ Cross-checked against the original artifact `/Users/saiduttaabhishekdash/seo-0.0
 ```properties
 server.port=8083
 app.datasource.mysql.username=root
-app.datasource.mysql.password=elexyt2024
+app.datasource.mysql.password=[redacted - see SECRETS.txt]
 app.datasource.mysql.driver-class-name=com.mysql.jdbc.Driver
 app.datasource.mysql.url=jdbc:mysql://localhost:3306/emailsender
 license=eyJhbGciOiJIUzI1NiJ9....   # HS256, signature never verified
-mac=D8-BB-C1-5E-BC-88               # machine lock
+mac=[redacted - see SECRETS.txt]               # machine lock
 spring.jpa.hibernate.use-new-id-generator-mappings=false
 spring.sql.init.continue-on-error=true
 spring.servlet.multipart.max-file-size=128MB
@@ -611,9 +611,9 @@ public class JpaConfigurationMySql {
 dataSource.setDriverClassName(env.getProperty("app.datasource.mysql.driver-class-name"));  // com.mysql.jdbc.Driver
 dataSource.setJdbcUrl(env.getProperty("app.datasource.mysql.url"));                      // jdbc:mysql://localhost:3306/emailsender
 dataSource.setUsername(env.getProperty("app.datasource.mysql.username"));                // root
-dataSource.setPassword(env.getProperty("app.datasource.mysql.password"));                // elexyt2024
+dataSource.setPassword(env.getProperty("app.datasource.mysql.password"));                // [redacted - see SECRETS.txt]
 ```
-Effective URL: `jdbc:mysql://localhost:3306/emailsender`, user `root`, password `elexyt2024`.
+Effective URL: `jdbc:mysql://localhost:3306/emailsender`, user `root`, password `[redacted - see SECRETS.txt]`.
 HikariCP 5.1.0 with **all defaults left in place**: `maximumPoolSize = 10`, `minimumIdle = 10`, `connectionTimeout = 30 000 ms`, `idleTimeout = 600 000 ms`, `maxLifetime = 1 800 000 ms`, `autoCommit = true`, `leakDetectionThreshold = 0` (off). No `dataSourceProperties` (e.g. no `useSSL=false`, no `allowPublicKeyRetrieval`) → with Connector/J 8.0.31 and MySQL 8 the default `caching_sha2_password` auth requires `allowPublicKeyRetrieval=true` or TLS, otherwise the first connect fails with `Public Key Retrieval is not allowed`.
 
 Hibernate properties:
@@ -708,7 +708,7 @@ None. `RestTemplate` has no `setErrorHandler`, no `ClientHttpRequestFactory` tim
 - `BCryptPasswordEncoder` default cost 10 (the stored hashes in `login` are cost 12 — a mismatch is fine for verification, but new passwords are weaker than the existing ones).
 - `SecurityConfiguration` also declares `public PasswordEncoder passwordencoder()` **without `@Bean`** → only the `WebMvcConfigruation` one is registered. No conflict, but the duplicate is confusing; if someone adds `@Bean` to the `SecurityConfiguration` one, there will be **two beans of type `PasswordEncoder`** (one typed `BCryptPasswordEncoder`) → injection ambiguity.
 - `SecurityConfiguration` (same package) permits `/`, `/resources/**`, `/webjars/**`, `/assets/**`, `/static/assets/**`, `/api/v1/getBarcode4j`, `/word`; everything else requires authentication; `formLogin` at `/login`, `defaultSuccessUrl("/welcome")`, `maximumSessions(1)`, `SessionCreationPolicy.IF_REQUIRED`. No CSRF config visible (default CSRF is on for non-GET).
-- `LoginDetailsServiceImpl` enforces the **licence lock**: MAC address must equal `mac` (`D8-BB-C1-5E-BC-88`) and the `license` JWT is only **decoded** (not signature-verified) with an `exp` check → the licence is forgeable, and the app is hard-bound to one NIC.
+- `LoginDetailsServiceImpl` enforces the **licence lock**: MAC address must equal `mac` (`[redacted - see SECRETS.txt]`) and the `license` JWT is only **decoded** (not signature-verified) with an `exp` check → the licence is forgeable, and the app is hard-bound to one NIC.
 
 ### 11.6 Bugs
 1. `taskExecutor()` missing `@Bean` (dead code, misleading name).
@@ -766,7 +766,7 @@ There are **two entirely separate send paths** in the app.
 
 ### Q3 — How are Google OAuth tokens refreshed, and where are they persisted?
 
-- **Persisted in MySQL**, table `gmail_master` (entity `com.pg.seo.entity.GmailMaster`, `@Where(clause="isActive =1")`), columns: `gmail_master_id`, `email`, `client_id`, `secret`, `refresh_token`, `access_token`, `is_active`, `created_by/date`, `modified_by/date`. **All plaintext.** Seeded rows (per `SECRETS.txt`): `elexyt24@gmail.com` and `saas@seoagencey.com`, each with its own client id, client secret, refresh token and a (stale) access token.
+- **Persisted in MySQL**, table `gmail_master` (entity `com.pg.seo.entity.GmailMaster`, `@Where(clause="isActive =1")`), columns: `gmail_master_id`, `email`, `client_id`, `secret`, `refresh_token`, `access_token`, `is_active`, `created_by/date`, `modified_by/date`. **All plaintext.** Seeded rows (per `SECRETS.txt`): `[redacted - see SECRETS.txt]` and `[redacted - see SECRETS.txt]`, each with its own client id, client secret, refresh token and a (stale) access token.
 - **Refresh logic** (`GmailService.createGmailService(String email)`, duplicated verbatim in `cfg/GmailServiceFactory`):
   ```java
   GmailMaster gmailMaster = gmailMasterRepository.findByEmail(email);
