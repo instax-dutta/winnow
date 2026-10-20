@@ -4,8 +4,14 @@ name: CodeQL
 # that build them. The findings land in the repository's security tab.
 #
 # Each language is analysed on its own runner. The extractors are memory hungry, and
-# running three of them in one job is what made an early run fall over while it
+# running several of them in one job is what made an early run fall over while it
 # finalised the database.
+#
+# The JavaScript analysis is left to GitHub's own default setup, which covers
+# javascript-typescript. This workflow covers the compiled language and the workflows
+# themselves, because those two are the ones a change to this repository is most likely
+# to break, and because a reader of the repository should be able to see exactly how
+# they are analysed.
 
 on:
   push:
@@ -35,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [java, javascript, actions]
+        language: [java-kotlin, actions]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
