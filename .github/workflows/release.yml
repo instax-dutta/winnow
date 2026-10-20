@@ -48,6 +48,13 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Releasing version $version"
+      - name: Set the project version
+        run: |
+          # The version in the pom is the version being released, so the jar, the image
+          # and the release all carry the same number.
+          ./mvnw -B -Dmaven.repo.local=${{ runner.temp }}/.m2 \
+            versions:set -DnewVersion="${{ steps.version.outputs.version }}" -DgenerateBackupPoms=false
+          grep -m1 "<version>" pom.xml
       - name: Build and test
         run: ./mvnw -B -Dmaven.repo.local=${{ runner.temp }}/.m2 verify
       - name: Package
@@ -60,7 +67,7 @@ jobs:
           # unambiguous path to work with.
           rm -rf dist
           mkdir -p dist
-          cp target/seo-*.jar dist/ 2>/dev/null || true
+          cp target/winnow-*.jar dist/ 2>/dev/null || true
           rm -f dist/*.jar.original
           # The build writes the bill of materials into the jar's metadata. It is lifted
           # out here so it can be published and attested on its own.
@@ -101,7 +108,7 @@ jobs:
       - name: Attest the bill of materials
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: dist/*.jar
+          subject-path: dist/winnow-*.jar
           sbom-path: dist/bom.json
 
   image:
@@ -159,7 +166,7 @@ jobs:
       - name: Attest the build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: dist/*.jar
+          subject-path: dist/winnow-*.jar
       - name: Create the release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
@@ -177,7 +184,7 @@ jobs:
 
             A self-hosted cold mail and lead generation platform.
 
-            - The jar: `winnow-*.jar`
+            - The jar: `winnow-<version>.jar`
             - The checksums: `SHA256SUMS`
             - The bill of materials: `bom.json`
             - The container image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.version }}`

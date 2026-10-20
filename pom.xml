@@ -13,7 +13,7 @@
 
   <groupId>io.github.instaxdutta</groupId>
   <artifactId>winnow</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
   <name>winnow</name>
   <description>Self-hosted cold-email and lead-generation platform for agencies.</description>
 
@@ -117,7 +117,7 @@
   </dependencies>
 
   <build>
-    <finalName>winnow</finalName>
+    <finalName>${project.artifactId}-${project.version}</finalName>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
