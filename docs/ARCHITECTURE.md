@@ -151,8 +151,8 @@ chosen time.
 ### Path A, a campaign against a group or a contact list
 
 Synchronous on the request thread until the campaign and its delivery rows are recorded.
-The dispatch of those delivery rows is not implemented yet; the note at the end of this
-section says what is in place and what is not.
+The dispatch of those delivery rows happens in the background, in the job described at the
+end of this section.
 
 1. **Campaign creation** (synchronous, `web/CampaignController` -> `service/CampaignService.create`).
    The service loads the template by `id` **and** `ownerUserId` and refuses it unless its
@@ -183,15 +183,21 @@ section says what is in place and what is not.
    `SENT` and the provider message id; failure writes `FAILED` and the error. A per-recipient
    failure never fails the batch. A delivery row without the error detail cannot be
    diagnosed, so the error is part of the record.
+8. **The campaign totals** (after every recipient). The campaign records how many were sent
+   and how many failed, and ends as `SUCCESS`, `PARTIAL` or `FAILED`.
 
-**What path A does not do yet.** Steps 1 to 5 are implemented. Steps 6 and 7 are the
-primitives the `mail` package provides and that `OutboxDispatchJob` uses, but no job
-dispatches a campaign's delivery rows yet: a delivery created by
-`CampaignService.create` stays in `QUEUED`. The primitives that a campaign dispatcher needs
-are in place, and the job itself is the piece that is missing. Path B is the path that
-sends today.
+**The dispatcher** (`scheduler/CampaignDispatchJob`). Every 30 seconds the job claims the
+campaigns that are waiting and sends them. The claim is a conditional update on the
+campaign status, so two application instances cannot send the same campaign twice. The job
+resolves the sending account and the template, walks the deliveries that are still `QUEUED`,
+sends each one through the provider adapter, and writes the outcome back. One failing
+recipient never stops the campaign, and one failing campaign never stops the job.
 
 ### Path B, the scheduled outbox
+
+The two paths differ in shape, not in intent. A campaign sends a set of recipients that was
+resolved once; the outbox sends a single message that was scheduled for a moment in time.
+They share the provider adapter, the quota check and the delivery record.
 
 1. **Scheduling** (synchronous, `service/OutboxService.schedule`). One `outbox` row per
    message with `scheduled_at`, the target address, the draft or body and the sending

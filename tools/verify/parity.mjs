@@ -68,6 +68,14 @@ const RULES = [
   { id: "private-build-host", re: pattern("\\bpel", "ican\\b") },
   { id: "private-build-host", re: pattern("\\btej", "es@") },
   { id: "misstated-limit", re: pattern("\\bactually ", "monthly\\b") },
+  // The phrasings a rewrite of the prose tends to leave behind.
+  { id: "previous-version", re: pattern("\\bthe old ", "(version|application|system|code)\\b") },
+  { id: "previous-version", re: pattern("\\bthe previous ", "(version|application|implementation)\\b") },
+  { id: "previous-version", re: pattern("\\bthe earlier ", "(version|application|code)\\b") },
+  { id: "previous-version", re: pattern("\\blegacy ", "(code|version|system)\\b") },
+  { id: "previous-version", re: pattern("\\bwe ", "(rewrote|rebuilt|ported|reverse)", "-engineered\\b") },
+  { id: "previous-version", re: pattern("\\breverse", "-engineered\\b") },
+  { id: "previous-version", re: pattern("\\bclean", "-room\\b") },
 ];
 
 const tracked = execFileSync("git", ["ls-files", "-z"], {
