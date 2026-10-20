@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # Build stage: resolve the dependencies and compile.
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /build
 
 # The dependency layer is cached separately from the sources, so a source-only change
