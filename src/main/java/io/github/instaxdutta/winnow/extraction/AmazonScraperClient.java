@@ -82,10 +82,10 @@ public class AmazonScraperClient {
             return parse(response.body());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOG.warn("The scrape of '{}' was interrupted", keyword);
+            LOG.warn("The scrape of '{}' was interrupted", LogSafe.text(keyword));
             return List.of();
         } catch (IOException | RuntimeException e) {
-            LOG.warn("The scrape of '{}' failed ({})", keyword, e.getClass().getSimpleName());
+            LOG.warn("The scrape of '{}' failed ({})", LogSafe.text(keyword), e.getClass().getSimpleName());
             return List.of();
         }
     }

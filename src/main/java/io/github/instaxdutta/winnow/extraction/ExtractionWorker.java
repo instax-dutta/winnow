@@ -113,7 +113,7 @@ public class ExtractionWorker {
                         crawlOne(entry, sink, seen, failed, succeeded, batch, batchLock, writeBatchSize);
                     } catch (RuntimeException e) {
                         failed.incrementAndGet();
-                        LOG.warn("The crawl of {} failed ({})", entry.domain(), e.getClass().getSimpleName());
+                        LOG.warn("The crawl of {} failed ({})", LogSafe.text(entry.domain()), e.getClass().getSimpleName());
                     } finally {
                         latch.countDown();
                     }

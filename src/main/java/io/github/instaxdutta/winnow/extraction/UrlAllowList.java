@@ -117,7 +117,7 @@ public class UrlAllowList {
         try {
             addresses = InetAddress.getAllByName(host);
         } catch (UnknownHostException e) {
-            LOG.warn("The host {} could not be resolved", host);
+            LOG.warn("The host {} could not be resolved", LogSafe.text(host));
             return true;
         }
         if (addresses.length == 0) {

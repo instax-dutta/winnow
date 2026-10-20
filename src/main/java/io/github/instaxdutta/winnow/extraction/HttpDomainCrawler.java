@@ -65,10 +65,10 @@ public class HttpDomainCrawler implements DomainCrawler {
             return extract(host, body);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOG.warn("The crawl of {} was interrupted", host);
+            LOG.warn("The crawl of {} was interrupted", LogSafe.text(host));
             return List.of();
         } catch (IOException | RuntimeException e) {
-            LOG.warn("The crawl of {} failed ({})", host, e.getClass().getSimpleName());
+            LOG.warn("The crawl of {} failed ({})", LogSafe.text(host), e.getClass().getSimpleName());
             return List.of();
         }
     }

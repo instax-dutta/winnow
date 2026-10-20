@@ -7,11 +7,10 @@ name: CodeQL
 # running several of them in one job is what made an early run fall over while it
 # finalised the database.
 #
-# The JavaScript analysis is left to GitHub's own default setup, which covers
-# javascript-typescript. This workflow covers the compiled language and the workflows
-# themselves, because those two are the ones a change to this repository is most likely
-# to break, and because a reader of the repository should be able to see exactly how
-# they are analysed.
+# Every language is analysed here rather than by GitHub's default setup. The two are
+# mutually exclusive: a repository cannot have both, and the default setup cannot be
+# read or reviewed in the repository. Having the analysis in the repository means a
+# contributor can see exactly what is checked and how.
 
 on:
   push:
@@ -41,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [java-kotlin, actions]
+        language: [java-kotlin, javascript-typescript, actions]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
