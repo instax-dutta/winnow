@@ -1,0 +1,20 @@
+{
+  "name": "winnow-scraper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Amazon search sidecar of winnow. Renders one page of Amazon search results and answers with JSON.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check scrape.js && node --check config.js && node --check verify.js",
+    "test": "node verify.js"
+  },
+  "dependencies": {
+    "puppeteer": "24.43.1",
+    "puppeteer-extra": "3.3.6",
+    "puppeteer-extra-plugin-stealth": "2.11.2"
+  }
+}

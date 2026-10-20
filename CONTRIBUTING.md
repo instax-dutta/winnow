@@ -86,6 +86,37 @@ Test names state the behaviour: `tenantACannotReadTenantBsClients`, not `testRea
   reason survives.
 - If you changed how something fits together, update `docs/ARCHITECTURE.md`.
 
+## Where the work is wanted
+
+Two areas are open, and both are self-contained enough to pick up without reading the
+whole codebase.
+
+### A credential store that does not need a shared volume
+
+`config/SecretStore` is the interface the service layer programs against, and
+`config/SecretStoreConfig` chooses the implementation from `SEO_SECRET_STORE_TYPE`. The
+default keeps one file per secret on disk, which is correct for a single host and for a
+cluster that mounts one shared volume. A store backed by a key management service would
+remove the shared-volume requirement entirely.
+
+To contribute one: implement `SecretStore`, register it as a bean under
+`@ConditionalOnProperty(name = "seo.secret-store.type", havingValue = "<your name>")`, and
+add the property to the record in `config/SecretStoreProperties`. Nothing else changes.
+`config/SecretStoreHealth` only checks the file store, so a new store should either
+satisfy the same contract or be given its own check.
+
+### Moving the Amazon sidecar to a current browser driver
+
+The sidecar in `scraper/` uses `puppeteer` 24.x, which is the last line that supports
+Node 20. It carries two advisories in its installer's own dependencies, `extract-zip` and
+`basic-ftp`. Neither is on a runtime path, and the Dockerfile already works around the
+`extract-zip` defect by unpacking the browser itself. Moving to `puppeteer` 25 needs
+Node 22.12 or later and is a good first change.
+
+The contract is fixed by `scraper/verify.js` and by
+`src/test/java/io/github/instaxdutta/winnow/extraction/AmazonScraperClientTest.java`, so a change that keeps
+both green is a change that keeps the two halves of the service in step.
+
 ## Reporting a security problem
 
 Not a public issue. See `SECURITY.md`.

@@ -8,6 +8,11 @@ reference/
 # disk for the owner to work through and is never committed.
 SECRETS.txt
 
+# The sidecar's Node dependencies and its browser download.
+scraper/node_modules/
+scraper/.puppeteer-cache/
+scraper/package-lock.json.bak
+
 # Build output
 target/
 build/

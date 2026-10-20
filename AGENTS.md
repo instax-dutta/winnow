@@ -162,5 +162,6 @@ node ~/.agents/skills/unlazy/scripts/gate-check.mjs --approve GATES.md   # only 
 | Path | Scope |
 |---|---|
 | `docs/` | Architecture, the plain-language walkthrough, the security model, the operating manual |
+| `scraper/` | The Amazon search sidecar: a small Node service that drives a browser |
 | `tools/` | Repository tooling: the verification scripts and the build helpers |
 | `src/` | Application source, resources and tests |

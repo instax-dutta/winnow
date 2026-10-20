@@ -1,0 +1,14 @@
+# The build stage installs the dependencies itself, so the ones on the host are never
+# copied into the image.
+node_modules
+npm-debug.log*
+
+# Nothing here belongs in the image.
+.git
+.gitignore
+.env
+.env.*
+*.log
+Dockerfile
+.dockerignore
+README.md

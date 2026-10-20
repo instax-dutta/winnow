@@ -35,7 +35,15 @@ spring:
 
 seo:
   secret-store:
+    # file  - one file per secret. Correct for one host, and for a cluster whose
+    #         instances share one volume. This is the default.
+    # vault - a contributed store backed by a key management service. Set the type and
+    #         register the implementation; nothing in the service layer changes.
+    type: ${SECRET_STORE_TYPE:file}
     path: ${SECRET_STORE_PATH:./.secrets}
+    # The number of application instances behind this store. On a cluster this must be
+    # more than one, and every instance must mount the same shared volume.
+    instances: ${SECRET_STORE_INSTANCES:1}
   storage:
     upload-dir: ${UPLOAD_DIR:./data/exports}
   quota:

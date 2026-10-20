@@ -84,8 +84,13 @@ docker compose up -d --build
 docker compose logs -f app
 ```
 
-The stack is two services. `db` is MySQL 8, published on `127.0.0.1:3307` only. `app` is the
-application, published on `127.0.0.1:8083`. Flyway applies the schema on the first boot.
+The stack is three services. `db` is MySQL 8, published on `127.0.0.1:3307` only. `scraper`
+is the Amazon sidecar, a small Node service that drives a real browser, published on
+`127.0.0.1:3000` only. `app` is the application, published on `127.0.0.1:8083`. Flyway
+applies the schema on the first boot.
+
+The sidecar is optional. The application works without it, and only the Amazon feature is
+unavailable.
 
 Open `http://127.0.0.1:8083/login` and sign in.
 
@@ -144,6 +149,7 @@ variable, is documented in `docs/ARCHITECTURE.md`.
 │   ├── EXPLAINER.html            A plain-language walkthrough of the whole system
 │   ├── SECURITY.md               Threat model, controls, remaining limitations
 │   └── MAINTENANCE.md            How to build, deploy, migrate and troubleshoot
+├── scraper/                      The Amazon sidecar. A small Node service
 ├── src/main/java/io/github/instaxdutta/winnow/     The application
 ├── src/main/resources/           Templates, static assets, Flyway migrations, config
 ├── src/test/                     The test suite. Hermetic: no network, no live mailbox.

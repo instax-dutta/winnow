@@ -381,6 +381,30 @@ would block a thread forever.
 | `spring.servlet.multipart.max-file-size` | `20MB` | The upload size cap. |
 | `spring.servlet.multipart.max-request-size` | `20MB` | The request size cap. |
 
+## The Amazon sidecar
+
+Reading an Amazon search result needs a rendered page, so it is done by a separate small
+Node service rather than by the application. The service lives in `scraper/`, it runs as its
+own container, and it is optional: the application works without it, and only the Amazon
+feature is unavailable.
+
+The contract is deliberately narrow. The caller sends a search term and a page number:
+
+```
+GET /scrape?keyword=<term>&page=<n>
+```
+
+and the service answers with a JSON object holding a `products` array. The service builds
+the Amazon URL itself. A caller can never choose the address the server visits, which is
+the whole point of putting it in a separate process with a narrow interface.
+
+The service binds to loopback unless an operator says otherwise, sends no CORS header, and
+bounds the keyword, the page number, the product count and every wait. One browser is
+launched at start-up and reused. A failed scrape is an empty result, not a server error.
+
+`src/test/java/io/github/instaxdutta/winnow/extraction/AmazonScraperClientTest.java` fixes the Java half of
+that contract, so the two halves cannot drift apart unnoticed.
+
 ## The deployment
 
 ### The Dockerfile

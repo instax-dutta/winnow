@@ -243,13 +243,19 @@ normally without it.
 - **The file-based secret store is not a KMS.** `config/FileSecretStore` is a directory of
   files with POSIX permissions. The value is protected by the filesystem's access control
   and by the fact that the directory is not in the repository, and by nothing else. There is
-  no envelope encryption, no key version and no audit trail of who read a secret.
-- **`FileSecretStore` is fine for a single host and wrong for a cluster.** It is local
-  state. Two instances of the application on two hosts do not share a secret store, and a
-  secret written on one is invisible on the other. A clustered deployment needs a shared
-  store, and the `config/SecretStore` interface is the seam for one. Until that exists, run
-  one instance, or mount the same directory on every instance with the consequence that a
-  rotation on one host has to be repeated on the others.
+  no envelope encryption, no key version and no audit trail of who read a secret. A store
+  backed by a key management service would close that, and it is the obvious thing to
+  contribute: `config/SecretStore` is the interface, `config/SecretStoreConfig` selects the
+  implementation from `seo.secret-store.type`, and nothing in the service layer changes when
+  a new one arrives.
+- **A cluster needs one shared store, and the start-up check says so.** The file store is
+  local state, so two instances on two hosts do not share it unless they mount the same
+  volume. `config/SecretStoreHealth` checks the store at start-up and fails the boot with a
+  message that names the fix, rather than letting the first affected mail fail hours later
+  with no obvious cause. `SEO_SECRET_STORE_INSTANCES` tells the application how many
+  instances sit behind the store, and it warns at start-up when that is more than one.
+  Point `SEO_SECRET_STORE_PATH` at a shared volume, or contribute a store that does not
+  need one.
 - **The inbound message body is stored as HTML.** `inbox_message.body_html` is the sanitised
   HTML of the message, not plain text. It is rendered with `th:utext` after the sanitisation,
   so it is not an injection vector, but it is still stored and still served to the browser
@@ -260,14 +266,12 @@ normally without it.
   the refusal to send a template that is not approved, and the escaping of the substituted
   recipient values. An administrator who approves a hostile template can still send
   hostile HTML to a recipient. That is the feature, not a defect.
-- **The template body is not sanitised on write.** The resource contract in
-  `src/main/resources/AGENTS.md` requires a field rendered with `th:utext` to be sanitised
-  on write. The inbound message body is. The template body is not yet, because a template is
-  operator-authored HTML that the operator means to send as HTML. Until it is, a template
-  body is raw HTML in the preview pane. Anyone who can edit a template can put a script tag
-  in the preview of the approvals page, which is a same-origin script execution against the
-  reviewing administrator. That is the one gap in this document, and it is a gap in the
-  code, not only in the description.
+- **The template body is sanitised on write, and the formatting it needs survives.**
+  `service/HtmlSanitiser` cleans the body when it is created and when it is edited, so a
+  script tag, an event handler, a `javascript:` link or an iframe cannot reach the preview
+  pane. The safelist keeps the formatting an email body actually needs, including tables
+  and images, so cleaning does not quietly break the template. The outbound mail carries
+  the same cleaned body.
 - **`UploadGuard` trusts the declared content type.** It checks the extension and the
   content type that the client declared. A file whose declared type is a spreadsheet but
   whose content is not will be rejected by the parser, but the parser is what has to notice
@@ -275,6 +279,13 @@ normally without it.
 - **The application trusts its own database.** Anyone with write access to the database can
   change a tenant's `owner_user_id`. The application is the isolation boundary, not the
   database.
+- **The Amazon sidecar is a separate service with its own attack surface.** It drives a
+  real browser, which is more dangerous than the application itself. It binds to loopback by
+  default, sends no CORS header, takes a search term rather than a URL so a caller can never
+  choose the address the server visits, and bounds the keyword, the page number, the product
+  count, the navigation time and the total request time. The port it is published on is
+  loopback only. What remains is that a browser renders whatever Amazon serves it, and the
+  sidecar is a convenient thing to point at a hostile page if it is ever exposed.
 - **The scraped address list is personal data.** `extraction_result` holds contact
   addresses harvested from third-party web pages. There is no retention policy and no
   suppression list, and the operator is the one who decides whether to crawl a domain at

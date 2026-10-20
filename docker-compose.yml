@@ -41,6 +41,30 @@ services:
       retries: 12
       start_period: 30s
 
+  # The Amazon search sidecar. It drives a real browser, so it is a separate service with
+  # a Chromium of its own. It is optional: the application works without it, and only the
+  # Amazon feature is unavailable.
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: seo-v01-scraper
+    restart: unless-stopped
+    environment:
+      # The image binds to loopback for safety. A container needs the whole interface, so
+      # this is the one deliberate exception, and the port is published on loopback only.
+      HOST: 0.0.0.0
+      PORT: 3000
+      LOG_LEVEL: ${SCRAPER_LOG_LEVEL:info}
+    ports:
+      - "127.0.0.1:${SCRAPER_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
   app:
     build:
       context: .
@@ -50,6 +74,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      scraper:
+        condition: service_started
     environment:
       SERVER_PORT: 8083
       DB_URL: jdbc:mysql://db:3306/${DB_NAME:-emailsender_v01}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8
@@ -59,7 +85,7 @@ services:
       BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
       SECRET_STORE_PATH: /app/.secrets
       UPLOAD_DIR: /app/data
-      SCRAPER_URL: ${SCRAPER_URL:-http://127.0.0.1:3000}
+      SCRAPER_URL: ${SCRAPER_URL:-http://scraper:3000}
     ports:
       - "127.0.0.1:${APP_PORT:-8083}:8083"
     volumes:

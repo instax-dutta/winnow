@@ -15,7 +15,6 @@ import java.util.HexFormat;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 /**
  * A secret store backed by one file per secret.
@@ -28,7 +27,6 @@ import org.springframework.stereotype.Component;
  * <p>The value is read from disk on every call and is never cached, so a value rotated on
  * disk takes effect on the next call. The value is never logged.
  */
-@Component
 public class FileSecretStore implements SecretStore {
 
     private static final Logger log = LoggerFactory.getLogger(FileSecretStore.class);

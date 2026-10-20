@@ -76,6 +76,11 @@ The gates are written before the implementation and are not edited to match the 
   EXPECT: CLEAN-BUILD-PASS
   EVIDENCE: automatic-evidence=v1; definition-sha256=7ab7397f9c36492f6fcc2445447b2e3d6dab1b675ecd2fc828c841f044cf8176; exit=0; EXPECT=matched; output-sha256=8ac33224aae4c2d2ad71d34d92ab1b9667579aee7316b67edcfafc930f65aeb1; output-bytes=323; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/winnow; path=b93c3fbfaca3/30 entries
 
+- [x] G14: The Amazon sidecar keeps its contract and its security properties.
+  CHECK: node tools/verify/scraper-contract.mjs
+  EXPECT: SCRAPER-PASS
+  EVIDENCE: automatic-evidence=v1; definition-sha256=cb5b565152dba47fb341817905a2b1ded0dc7b91f5a354b16385885d3960f9df; exit=0; EXPECT=matched; output-sha256=3082d2ee7a453536ba75aa940845e8fd1301c02a1421a6803f8cb4803fcccd83; output-bytes=635; shell=/bin/sh; cwd=/Users/saiduttaabhishekdash/winnow; path=b93c3fbfaca3/30 entries
+
 <!--
 Notes for the checker:
 - G1, G2, G7 and G9 run Maven through tools/verify/host-mvn.sh, which mirrors the working
@@ -84,5 +89,7 @@ Notes for the checker:
 - G3, G8 and G13 need the MySQL 8 container and the development credentials in
   .env.development, which is git-ignored. Each of them says so explicitly and fails rather
   than passing silently when the credentials are absent.
-- G10 and G12 scan the tracked tree and fail on the first thing they find.
+- G10, G12 and G14 are read-only checks over the tracked tree and the sidecar. G14 installs
+  the sidecar's Node dependencies on the first run with the install scripts disabled, because
+  the contract proof needs no browser.
 -->
