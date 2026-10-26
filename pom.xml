@@ -24,7 +24,7 @@
     <google-api-client.version>2.9.1</google-api-client.version>
     <google-gmail.version>v1-rev20261005-2.0.0</google-gmail.version>
     <jsoup.version>1.23.2</jsoup.version>
-    <poi.version>5.5.1</poi.version>
+    <poi.version>6.0.0</poi.version>
   </properties>
 
   <dependencies>
