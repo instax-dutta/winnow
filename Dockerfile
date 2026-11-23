@@ -15,7 +15,7 @@ RUN mvn -B -q -DskipTests package
 RUN find target -maxdepth 1 -name '*.jar' ! -name '*.original' -exec cp {} /build/app.jar \;
 
 # Runtime stage: a JRE and the jar. No compiler, no Maven, no shell history.
-FROM eclipse-temurin:21-jre-jammy AS runtime
+FROM eclipse-temurin:22-jre-jammy AS runtime
 
 RUN groupadd --system --gid 1001 seo \
  && useradd --system --uid 1001 --gid seo --home-dir /app --shell /usr/sbin/nologin seo \
